@@ -1,10 +1,17 @@
+"""CATH API Tests"""
+
+import logging
 
 from django.test import TestCase
 from django.urls import reverse
-from .models import SelectTemplateTask
 
 from rest_framework.test import APIClient
 from rest_framework import status
+
+from .models import SelectTemplateTask
+
+LOG = logging.getLogger(__name__)
+logging.basicConfig()
 
 # Create your tests here.
 
@@ -13,8 +20,10 @@ class ModelTestCase(TestCase):
 
     def setUp(self):
         """Define the test client and other test variables."""
-        self.template_query_fasta = ">query\nAPKGAPKGAPKGAPKGAPKGAKPGAKGKPAKGPAKGPAKGAGPKAGPKAGPKAPGKAAGPK\n"
-        self.template_task = SelectTemplateTask(fasta=self.template_query_fasta)
+        self.query_id = "test_query_id"
+        self.query_seq = "APKGAPKGAPKGAPKGAPKGAKPGAKGKPAKGPAKGPAKGAGPKAGPKAGPKAPGKAAGPK"
+        self.template_task = SelectTemplateTask(
+            query_id=self.query_id, query_sequence=self.query_seq)
 
     def test_model_can_create_a_task(self):
         """Test the tasklist model can create a task."""
@@ -29,23 +38,27 @@ class ViewTestCase(TestCase):
     def setUp(self):
         """Define the test client and other test variables."""
         self.client = APIClient()
-        self.template_task_data = {'fasta': ">query\nGPKASPGAPKAPKAPKGPKAGPAKGPKAPSKGPSAKPGKASPKGPAASPGK\n"}
-        self.response = self.client.post(
+        self.template_task_data = {
+            'query_id': "test_query_id",
+            'query_sequence': "GPKASPGAPKAPKAPKGPKAGPAKGPKAPSKGPSAKPGKASPKGPAASPGK",
+        }
+
+    def test_api_can_create_a_task(self):
+        """Test the api has task creation capability (after login)"""
+        response = self.client.post(
             reverse('create_selecttemplate'),
             self.template_task_data,
             format="json"
         )
-
-    def test_api_can_create_a_task(self):
-        """Test the api has task creation capability"""
-        self.assertEqual(self.response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_api_can_get_a_task(self):
         """Test the api can get a given tasklist."""
         task = SelectTemplateTask.objects.get()
+        LOG.info("task: %s id:%s", task, task.id)
         response = self.client.get(
             reverse('details_selecttemplate',
-            kwargs={'pk': task.id}), format="json")
+                    kwargs={'pk': task.id}), format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, task.id)
 
@@ -57,4 +70,4 @@ class ViewTestCase(TestCase):
             format='json',
             follow=True)
 
-        self.assertEquals(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
