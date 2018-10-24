@@ -15,15 +15,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.conf.urls import url, include
-from rest_framework import permissions
+from rest_framework import permissions, routers, serializers, viewsets
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
-schema_view = get_schema_view(
+SchemaView = get_schema_view(
     openapi.Info(
         title="CATH-SWISSMODEL API 1",
         default_version='v0.0.1',
-        description="Select a template structure on which to model the 3D coordinates of a given protein sequence.",
+        description=("Select a template structure on which to model "
+                     "the 3D coordinates of a given protein sequence."),
         terms_of_service="https://www.google.com/policies/terms/",
         contact=openapi.Contact(email="i.sillitoe@ucl.ac.uk"),
         license=openapi.License(name="BSD License"),
@@ -33,10 +34,16 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
+# Routers provide an easy way of automatically determining the URL conf.
+router = routers.DefaultRouter()
+
 urlpatterns = [
-    url(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=None), name='schema-json'),
-    url(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=None), name='schema-swagger-ui'),
-    url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=None), name='schema-redoc'),
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^swagger(?P<format>\.json|\.yaml)$',
+        SchemaView.without_ui(cache_timeout=None), name='schema-json'),
+    url(r'^swagger/$', SchemaView.with_ui('swagger', cache_timeout=None), name='schema-swagger-ui'),
+    url(r'^redoc/$', SchemaView.with_ui('redoc', cache_timeout=None), name='schema-redoc'),
     url(r'^admin/', admin.site.urls),
+    url(r'^', include(router.urls)),
     url(r'^', include('api.urls')),
 ]
