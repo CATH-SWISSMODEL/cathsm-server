@@ -11,23 +11,36 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-with open('/etc/secret_key.txt') as f:
-    SECRET_KEY = f.read().strip()
+SECRET_KEY = None
+for secret_dir in [BASE_DIR, '/etc']:
+    secret_file = os.path.join(secret_dir, 'secret_key.txt')
+    try:
+        with open(secret_file) as f:
+            SECRET_KEY = f.read().strip()
+    except FileNotFoundError:
+        continue
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [".cathdb.info", "localhost", "0.0.0.0"]
 
+# SENTRY (logging)
+
+sentry_sdk.init(
+    dsn="https://09c10478769d49959a287589b3183f2a@sentry.io/1308416",
+    integrations=[DjangoIntegration()]
+)
+
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
 # Application definition
 
@@ -125,3 +138,32 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
+
+# REST framework
+
+REST_FRAMEWORK = {
+    # User Django's standard `django.contrib.auth` permissions,
+    # or allow read-only for unauthenticated users
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ]
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+        },
+    },
+    'loggers':{
+        'django': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        }
+    }
+}
