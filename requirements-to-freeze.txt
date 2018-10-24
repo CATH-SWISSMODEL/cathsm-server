@@ -1,0 +1,11 @@
+requests
+testutils
+pyswagger
+sentry_sdk
+django
+djangorestframework
+markdown
+django-filter
+
+drf_yasg
+django-extensions
