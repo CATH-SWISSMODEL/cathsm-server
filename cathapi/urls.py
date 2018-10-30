@@ -1,4 +1,4 @@
-"""djangorest URL Configuration
+"""cathapi URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/1.11/topics/http/urls/
@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.conf.urls import url, include
-from rest_framework import permissions, routers, serializers, viewsets
+from rest_framework import permissions, routers
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
@@ -35,15 +35,14 @@ SchemaView = get_schema_view(
 )
 
 # Routers provide an easy way of automatically determining the URL conf.
-router = routers.DefaultRouter()
+ROUTER = routers.DefaultRouter()
 
 urlpatterns = [
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^swagger(?P<format>\.json|\.yaml)$',
         SchemaView.without_ui(cache_timeout=None), name='schema-json'),
     url(r'^swagger/$', SchemaView.with_ui('swagger', cache_timeout=None), name='schema-swagger-ui'),
     url(r'^redoc/$', SchemaView.with_ui('redoc', cache_timeout=None), name='schema-redoc'),
     url(r'^admin/', admin.site.urls),
-    url(r'^', include(router.urls)),
-    url(r'^', include('api.urls')),
+    url(r'^api/', include('api.urls')),
+    url(r'^', include(ROUTER.urls)),
 ]
