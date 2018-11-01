@@ -14,8 +14,8 @@ class SelectTemplateQuerySerializer(serializers.ModelSerializer):
     class Meta:
         """Meta class to map serializer's fields with the model fields."""
         model = SelectTemplateTask
-        fields = ('query_id', 'query_sequence', 'task_id')
-        read_only_fields = ('status', 'message', 'date_created', 'date_modified', 'results',)
+        fields = ('uuid', 'status', 'message', 'query_id', 'query_sequence', 'date_created', 'date_modified')
+        read_only_fields = ('status', 'message', 'date_created', 'date_modified',)
 
     def create(self, validated_data):
         """
@@ -24,6 +24,14 @@ class SelectTemplateQuerySerializer(serializers.ModelSerializer):
         LOG.info("%s.create(%s)", __name__, str(validated_data))
         return SelectTemplateTask.objects.create(**validated_data)
 
+class SelectTemplateStatusSerializer(serializers.ModelSerializer):
+    """Serializer to map the Model instance into JSON format"""
+
+    class Meta:
+        """Meta class to map serializer's fields with the model fields."""
+        model = SelectTemplateTask
+        fields = ('uuid', 'status', 'message', 'date_created', 'date_modified',)
+        read_only_fields = ('status', 'message', 'date_created', 'date_modified',)
 
 class SelectTemplateResultsSerializer(serializers.ModelSerializer):
     """Serializer to map the Model instance into JSON format"""
@@ -31,5 +39,5 @@ class SelectTemplateResultsSerializer(serializers.ModelSerializer):
     class Meta:
         """Meta class to map serializer's fields with the model fields."""
         model = SelectTemplateTask
-        fields = ('task_id', 'status', 'message', 'date_created', 'date_modified', 'results',)
-        read_only_fields = ('status', 'message', 'date_created', 'date_modified', 'results',)
+        fields = ('uuid', 'status', 'message', 'date_created', 'date_modified', 'results_csv', 'results_json',)
+        read_only_fields = ('status', 'message', 'date_created', 'date_modified', 'results_csv', 'results_json',)
