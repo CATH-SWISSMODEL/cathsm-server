@@ -6,6 +6,12 @@ django
 djangorestframework
 markdown
 django-filter
-
+jsonpickle
 drf_yasg
 django-extensions
+pylint
+pylint-django
+pytest-django
+tqdm
+flex
+swagger_spec_validator
