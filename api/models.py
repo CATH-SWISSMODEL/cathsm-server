@@ -2,6 +2,7 @@
 
 import hashlib
 import logging
+import uuid
 
 from django.db import models
 
@@ -21,6 +22,8 @@ STATUS_CHOICES = ((st, st) for st in (
 
 class SelectTemplateTask(models.Model):
     """This class represents the tasklist model."""
+
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     query_id = models.CharField(max_length=50, blank=False, unique=False)
     query_sequence = models.CharField(max_length=2000, blank=False, unique=False)
