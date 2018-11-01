@@ -1,15 +1,16 @@
 """CATH API Models"""
 
-import hashlib
 import logging
 import uuid
 
 from django.db import models
+#from django.contrib.auth.models import User
+
+from cathpy.funfhmmer import Client
 
 LOG = logging.getLogger(__name__)
 
 # constants
-STATUS_INITIALISED = "initialised"
 STATUS_QUEUED = "queued"
 STATUS_RUNNING = "running"
 STATUS_ERROR = "error"
@@ -28,24 +29,85 @@ class SelectTemplateTask(models.Model):
     query_id = models.CharField(max_length=50, blank=False, unique=False)
     query_sequence = models.CharField(max_length=2000, blank=False, unique=False)
 
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_INITIALISED)
+    #user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_UNKNOWN)
     message = models.CharField(max_length=150)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
-    results = models.CharField(max_length=5000, blank=True)
+    results_csv = models.CharField(max_length=100000, blank=True)
+    results_json = models.CharField(max_length=100000, blank=True)
 
-    ip = models.GenericIPAddressField(default="0.0.0.0")
+    client_ip = models.GenericIPAddressField(default="0.0.0.0")
 
-    @property
-    def task_id(self):
-        """returns unique key from input fields"""
-        md5 = hashlib.md5()
-        md5.update(str(self.query_id).encode('utf-8'))
-        md5.update(str(self.query_sequence).encode('utf-8'))
-        task_id = md5.hexdigest()
-        return task_id
+    remote_task_id = models.CharField(max_length=50, blank=True)
+
+    api_client = Client()
 
     def __str__(self):
         """Return a human readable representation of this instance."""
-        return "[{}] status:{}, started:{}, last_updated:{}".format(
-            self.task_id, self.status, self.date_created, self.date_modified)
+        return "[{}] uuid: {}, status: {}, remote_task_id: {}, started: {}, last_updated: {}, client_ip: {}".format(
+            self.id, self.uuid, self.status, self.remote_task_id, self.date_created, self.date_modified, self.client_ip)
+
+    @property
+    def query_fasta(self):
+        return ">{}\n{}\n".format(self.query_id, self.query_sequence)
+
+    def submit_remote_task(self):
+        LOG.info("submit_remote_task: %s", self.query_id)
+        submit_response = self.api_client.submit(self.query_fasta)
+        remote_task_id = submit_response.task_id
+        LOG.info("submit_remote_task.response: (%s) %s %s", type(submit_response), str(submit_response.__dict__), remote_task_id)
+        self.remote_task_id = remote_task_id
+        self.save()
+        return remote_task_id
+
+    def update_remote_task(self):
+        LOG.info("update_remote_task: %s '%s'", self.query_id, self.remote_task_id)
+
+        if not self.remote_task_id:
+            LOG.info("update_remote_task: %s no_remote_task_id")
+            return
+
+        if self.status in [STATUS_SUCCESS, STATUS_ERROR]:
+            LOG.info("update_remote_task: %s task_already_complete")
+            return
+
+        try:
+            check_response = self.api_client.check(self.remote_task_id)
+        except Exception as e:
+            LOG.error("encountered error when checking remote task: (%s) %s", type(e), e)
+            raise
+        msg = check_response.message
+
+        # make these checks explicit so we can add extra hooks to each stage
+        if msg == 'done':
+            results_response = self.api_client.results(self.remote_task_id)
+            try:
+                self.results_csv = results_response.as_csv()
+            except Exception as e:
+                LOG.error("encountered an error when outputting results as CSV: [%s] %s", type(e), e)
+                raise
+            
+            try:
+                self.results_json = results_response.as_json()
+            except Exception as e:
+                LOG.error("encountered an error when outputting results as JSON: [%s] %s", type(e), e)
+                raise
+
+            self.status = STATUS_SUCCESS
+
+        elif msg == 'queued':
+            self.status = STATUS_QUEUED
+        elif msg == 'running':
+            self.status = STATUS_RUNNING
+        elif msg == 'error':
+            self.status = STATUS_ERROR
+        else:
+            self.status = STATUS_ERROR
+            self.message = "CheckResponse returned unexpected message '{}'".format(msg)
+
+        self.save()
+
+    def retrieve_results(self):
+        pass
