@@ -169,7 +169,7 @@ logging.config.dictConfig({
     'disable_existing_loggers': False,
     'formatters': {
         'console': {
-            'format': '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+            'format': '%(asctime)s | %(name)20s:%(lineno)-4d | %(levelname)-8s | %(message)s',
         },
     },
     'handlers': {
@@ -184,16 +184,16 @@ logging.config.dictConfig({
         },
     },
     'loggers': {
-        '': {
-            'level': 'DEBUG',
-            'handlers': ['console'],
-        },
         'django': {
             'level': 'DEBUG',
             'handlers': ['console'],
             'propagate': True,
         },
         'cathapi': {
+            'level': LOG_LEVEL,
+            'handlers': ['console'],
+        },
+        'cathpy': {
             'level': LOG_LEVEL,
             'handlers': ['console'],
         },
