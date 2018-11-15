@@ -19,7 +19,7 @@ from rest_framework import permissions, routers
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
-SchemaView = get_schema_view(
+SelectTemplateApi = get_schema_view(
     openapi.Info(
         title="CATH-SWISSMODEL API 1",
         default_version='v0.0.1',
@@ -39,10 +39,11 @@ ROUTER = routers.DefaultRouter()
 
 urlpatterns = [
     url(r'^swagger(?P<format>\.json|\.yaml)$',
-        SchemaView.without_ui(cache_timeout=None), name='schema-json'),
-    url(r'^swagger/$', SchemaView.with_ui('swagger', cache_timeout=None), name='schema-swagger-ui'),
-    url(r'^redoc/$', SchemaView.with_ui('redoc', cache_timeout=None), name='schema-redoc'),
+        SelectTemplateApi.without_ui(cache_timeout=None), name='schema-json'),
+    url(r'^swagger/$', SelectTemplateApi.with_ui('swagger', cache_timeout=None), name='schema-swagger-ui'),
+    url(r'^redoc/$', SelectTemplateApi.with_ui('redoc', cache_timeout=None), name='schema-redoc'),
     url(r'^admin/', admin.site.urls),
-    url(r'^api/', include('api.urls')),
-    url(r'^', include(ROUTER.urls)),
+    url(r'^api/', include('select_template_api.urls')),
+    url(r'^api/', include(ROUTER.urls)),
+    url(r'', include('frontend.urls')),
 ]

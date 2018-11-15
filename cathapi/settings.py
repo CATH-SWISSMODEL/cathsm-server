@@ -53,7 +53,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'api',
+    'select_template_api',
+    'frontend',
     'drf_yasg',
     'django_extensions',
 ]
@@ -197,7 +198,11 @@ logging.config.dictConfig({
             'level': LOG_LEVEL,
             'handlers': ['console'],
         },
-        'api': {
+        'frontend': {
+            'level': LOG_LEVEL,
+            'handlers': ['console'],
+        },
+        'select_template_api': {
             'level': LOG_LEVEL,
             'handlers': ['console'],
         },
