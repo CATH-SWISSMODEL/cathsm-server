@@ -69,7 +69,7 @@ class ViewTestCase(TestCase):
         token = self.get_auth_token()
         self.client.credentials(HTTP_AUTHORIZATION='Token '+token)
         response = self.client.post(
-            reverse('api:create_selecttemplate'),
+            reverse('select_template_api:create_selecttemplate'),
             self.template_task_data,
             format="json")
         
@@ -80,7 +80,7 @@ class ViewTestCase(TestCase):
         self.assertTrue(task_uuid)
 
         response = self.client.get(
-            reverse('api:status_selecttemplate', kwargs={'uuid': task_uuid}),
+            reverse('select_template_api:status_selecttemplate', kwargs={'uuid': task_uuid}),
             format="json")
 
         return response
@@ -90,7 +90,7 @@ class ViewTestCase(TestCase):
         self.assertTrue(task_uuid)
 
         response = self.client.get(
-            reverse('api:results_selecttemplate', kwargs={'uuid': task_uuid}),
+            reverse('select_template_api:results_selecttemplate', kwargs={'uuid': task_uuid}),
             format="json")
 
         results_data = response.json()
@@ -102,10 +102,10 @@ class ViewTestCase(TestCase):
     def test_api_create_task_requires_auth(self):
         """Test the api cannot create tasks without authentication"""
 
-        self.assertEqual(reverse('api:create_selecttemplate'), '/api/select-template/')
+        self.assertEqual(reverse('select_template_api:create_selecttemplate'), '/api/select-template/')
 
         response = self.client.post(
-            reverse('api:create_selecttemplate'),
+            reverse('select_template_api:create_selecttemplate'),
             self.template_task_data,
             format="json"
         )
@@ -114,7 +114,7 @@ class ViewTestCase(TestCase):
     def get_auth_token(self):
 
         token_response = self.client.post(
-            reverse('api:auth_token'),
+            reverse('select_template_api:auth_token'),
             self.testuser_auth,
             format="json"
         )
@@ -183,7 +183,7 @@ class ViewTestCase(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Token '+token)
 
         response = self.client.delete(
-            reverse('api:status_selecttemplate', kwargs={'uuid': task.uuid}),
+            reverse('select_template_api:status_selecttemplate', kwargs={'uuid': task.uuid}),
             format='json',
             follow=True)
 
