@@ -1,10 +1,20 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import DataProvider from "./DataProvider";
-import Table from "./Table";
-const App = () => (
-  <DataProvider endpoint="api/lead/" 
-                render={data => <Table data={data} />} />
-);
-const wrapper = document.getElementById("app");
-wrapper ? ReactDOM.render(<App />, wrapper) : null;
+import React from 'react';
+import "babel-polyfill";
+
+import ReactDOM from 'react-dom';
+import CssBaseline from '@material-ui/core/CssBaseline';
+
+import AppBar from './AppBar.js';
+import WorkFlow from './WorkFlow.js';
+
+function App() {
+  return (
+    <React.Fragment>
+      <CssBaseline />
+      <AppBar />
+      <WorkFlow />
+    </React.Fragment>
+  );
+}
+
+ReactDOM.render(<App />, document.querySelector('#app'));
