@@ -44,6 +44,6 @@ urlpatterns = [
     url(r'^redoc/$', SelectTemplateApi.with_ui('redoc', cache_timeout=None), name='schema-redoc'),
     url(r'^admin/', admin.site.urls),
     url(r'^api/', include('select_template_api.urls')),
-    url(r'^api/', include(ROUTER.urls)),
+#    url(r'^api/', include(ROUTER.urls)),
     url(r'', include('frontend.urls')),
 ]
