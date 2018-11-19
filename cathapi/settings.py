@@ -162,7 +162,7 @@ REST_FRAMEWORK = {
 # https://lincolnloop.com/blog/django-logging-right-way/
 
 
-LOGGING_CONIG = None
+LOGGING_CONFIG = None
 LOG_LEVEL = os.environ.get('CATHAPI_LOGLEVEL', 'info').upper()
 import logging.config # pylint: disable=C0413,C0411
 logging.config.dictConfig({
@@ -170,7 +170,7 @@ logging.config.dictConfig({
     'disable_existing_loggers': False,
     'formatters': {
         'console': {
-            'format': '%(asctime)s | %(name)20s:%(lineno)-4d | %(levelname)-8s | %(message)s',
+            'format': '%(asctime)s %(name)35s:%(lineno)-5s %(levelname)-8s | %(message)s',
         },
     },
     'handlers': {
@@ -186,25 +186,29 @@ logging.config.dictConfig({
     },
     'loggers': {
         'django': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'handlers': ['console'],
             'propagate': True,
         },
         'cathapi': {
             'level': LOG_LEVEL,
             'handlers': ['console'],
+            'propagate': True,
         },
         'cathpy': {
             'level': LOG_LEVEL,
             'handlers': ['console'],
+            'propagate': True,
         },
         'frontend': {
             'level': LOG_LEVEL,
             'handlers': ['console'],
+            'propagate': True,
         },
         'select_template_api': {
             'level': LOG_LEVEL,
             'handlers': ['console'],
+            'propagate': True,
         },
     }
 })
