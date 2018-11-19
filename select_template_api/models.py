@@ -66,11 +66,11 @@ class SelectTemplateTask(models.Model):
         LOG.info("update_remote_task: %s '%s'", self.query_id, self.remote_task_id)
 
         if not self.remote_task_id:
-            LOG.info("update_remote_task: %s no_remote_task_id")
+            LOG.info("update_remote_task: %s no_remote_task_id", self)
             return
 
         if self.status in [STATUS_SUCCESS, STATUS_ERROR]:
-            LOG.info("update_remote_task: %s task_already_complete")
+            LOG.info("update_remote_task: %s task_already_complete", self.status)
             return
 
         try:
