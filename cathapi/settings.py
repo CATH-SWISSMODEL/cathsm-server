@@ -55,11 +55,13 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'select_template_api',
     'frontend',
+    'corsheaders',
     'drf_yasg',
     'django_extensions',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -89,6 +91,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'cathapi.wsgi.application'
 
+CORS_ORIGIN_WHITELIST = (
+    'localhost:3000',
+    'cathdb.info',
+    'expasy.org',
+)
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
@@ -137,9 +144,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
+REACT_APP_DIR = os.path.join(BASE_DIR, 'frontend')
+
 STATIC_URL = '/static/'
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
+
+STATICFILES_DIRS = [
+    os.path.join(REACT_APP_DIR, 'build', 'static'),
+]
 
 # REST framework
 
