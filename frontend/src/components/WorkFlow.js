@@ -6,16 +6,15 @@ import Step from '@material-ui/core/Step';
 import StepLabel from '@material-ui/core/StepLabel';
 import StepContent from '@material-ui/core/StepContent';
 import Button from '@material-ui/core/Button';
-import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
 
 import QuerySequence from './QuerySequence.js';
-// import SelectTemplate from './SelectTemplate.js';
-// import SelectTemplateStep from './SelectTemplateStep.js';
-import SelectTemplateTable from './SelectTemplateTable.js';
+import FunfamMatchList from './FunfamMatchList.js';
 import ModelStructure from './ModelStructure.js';
 import SubmitCheckResultProvider from './SubmitCheckResultProvider.js';
+
+import SearchScan, { parseCathScanData } from '../models/SearchScan.js';
 
 const styles = theme => ({
   root: {
@@ -48,12 +47,12 @@ const STEPS_CONFIG = [
       apiBase: 'http://localhost:8000/',
       authTokenEndpoint: 'api/api-auth-token/',
       submitEndpoint: 'api/select-template/',
-      checkEndpoint: 'api/select-template/<id>',
+      checkEndpoint: 'api/select-template/<id>/',
       resultEndpoint: 'api/select-template/<id>/results',
       taskIdFromSubmit: (data) => { return data['uuid'] },
-      isCompleteFromCheck: (data) => { return data['status'] == 'success' },
-      username: 'ian',
-      password: '4cathuse',
+      isCompleteFromCheck: (data) => { return data['status'] === 'success' },
+      username: 'apiuser',
+      password: 'apiuserpassword',
     },
     providerHandles: {
       onError: 'handleTemplateError',
@@ -72,9 +71,9 @@ const STEPS_CONFIG = [
       authTokenEndpoint: 'api/api-auth-token/',
       submitEndpoint: 'api/alignment/',
       checkEndpoint: 'api/alignment/<id>/status',
-      resultEndpoint: 'api/alignment/<id>',
+      resultEndpoint: 'api/alignment/<id>/',
       taskIdFromSubmit: (data) => { return data['uuid'] },
-      isCompleteFromCheck: (data) => { return data['status'] == 'success' },
+      isCompleteFromCheck: (data) => { return data['status'] === 'success' },
       username: 'ian',
       password: '4cathuse',
     },
@@ -152,12 +151,13 @@ class WorkFlow extends React.Component {
   }
 
   getStepConfigById(stepid) {
-    return STEPS_CONFIG.find((data) => data.id == stepid);
+    return STEPS_CONFIG.find((data) => data.id === stepid);
   }
 
   handleTemplateError(msg) {
     console.log("handleTemplateError", msg);
     this.setState({ templateError: true });
+    throw Error(msg);
   }
   handleTemplateSubmit(data) {
     console.log("handleTemplateSubmit", data);
@@ -172,36 +172,54 @@ class WorkFlow extends React.Component {
   }
 
   parseTemplateResultData(rawdata) {
+    const results_json = rawdata.results_json;
+    const data = JSON.parse(results_json);
+    let scan = null;
+    try {
+      scan = parseCathScanData(data.funfam_scan);
+    }
+    catch (e) {
+      console.log("failed to parse template results from data", e, rawdata);
+      this.handleTemplateError("failed to parse template results from data");
+      throw Error("foo");
+    };
+    console.log("parse: ", results_json, data.funfam_scan, scan);
+    return scan;
+  }
+
+  parseTemplateCSVResultData(rawdata) {
     const csv_text = rawdata['results_csv'];
     const lines = csv_text.split('\n');
 
-    const colNames = ['funfam', 'members', 'uniq_ec_terms', 'query_region', 'match_region', 'evalue', 'score', 'description'];
+    // 'funfam', 'members', 'uniq_ec_terms', 'query_region', 'match_region', 'evalue', 'score', 'description'
     const quote_re = /"(.*?)"/g;
     const parseSeg = function(segstr) {
       const parts = segstr.split('-');
-      return [parseInt(parts[1]), parseInt(parts[2])];
+      return [parseInt(parts[0]), parseInt(parts[1])];
     };
     let data = [];
     for (let lineidx=0; lineidx<lines.length; lineidx++) {
-      const line = lines[lineidx];
+      let line = lines[lineidx];
       if ( line.startsWith('#') ) {
         continue;
       }
       line = line.replace(quote_re, function(match, val) {
         return val.replace(/\s+/g, '___');
       });
-      const cols = line.split(/\s+/);
-      if ( cols.length == 1 ) {
+      let cols = line.split(/\s+/);
+      if ( cols.length === 1 ) {
         continue;
       }
-      if ( cols.length != 8 ) {
+      if ( cols.length !== 8 ) {
         console.warn(`expected 8 cols, found ${cols.length} in '${line}' (line:${lineidx+1})`);
         continue;
       }
       cols = cols.map((val, idx) => {
         return val.replace(/___/g, ' ');
       });
+      const id = [ cols[0], cols[3], cols[4] ].join('-');
       let row = {
+        id: id,
         funfam: cols[0],
         members: 0 + parseInt(cols[1]),
         uniq_ec_terms: 0 + parseInt(cols[2]),
@@ -226,12 +244,9 @@ class WorkFlow extends React.Component {
     const templateError = this.state.templateError;
     const templateData = this.state.templateData;
     let content;
-    if (templateError) {
-      content = "Error";
-    } 
-    else if (!templateData) {
+    if (!templateData) {
       content = (
-        <SubmitCheckResultProvider 
+        <SubmitCheckResultProvider
           {...dataProps}
           key="select-template"
           submitData={templateSubmitData}
@@ -242,8 +257,10 @@ class WorkFlow extends React.Component {
         />);
     } else {
       content = (
-        <SelectTemplateTable 
-            data={templateData}
+        <FunfamMatchList
+            queryId={this.state.queryId}
+            querySequence={this.state.queryId}
+            scan={templateData}
           />
       )
     }

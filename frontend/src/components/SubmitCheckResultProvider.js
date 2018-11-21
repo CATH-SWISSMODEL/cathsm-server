@@ -1,7 +1,17 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
+import { withStyles } from '@material-ui/core/styles';
+import red from '@material-ui/core/colors/red';
+import LinearProgress from "@material-ui/core/LinearProgress";
 import RemoteDataProvider from "./RemoteDataProvider";
 import AuthTokenProvider from "./AuthTokenProvider";
+import { Typography } from "@material-ui/core";
+
+const styles = theme => ({
+  root: {
+    width: '100%',
+  },
+});
 
 class SubmitCheckResultProvider extends Component {
 
@@ -34,9 +44,12 @@ class SubmitCheckResultProvider extends Component {
   }
 
   getEndpoint(type, id) {
-    const endpointName = type.toLowerCase() + 'Endpoint';
+    const endpointName = type + 'Endpoint';
     const apiBase = this.props.apiBase;
     const endpointPart = this.props[endpointName];
+    if (!endpointPart) {
+      throw Error(`failed to get endpoint for type ${type}`, this.props);
+    }
     let endpoint = apiBase ? apiBase + endpointPart : endpointPart;
     if (id) {
       endpoint = endpoint.replace('<id>', id);
@@ -44,7 +57,11 @@ class SubmitCheckResultProvider extends Component {
     return endpoint;
   }
 
-  handleError(msg) {
+  handleError(msg, data) {
+    console.log("handleError", msg, data);
+    if ( data && data['non_field_error']) {
+      msg += ": " + data['non_field_error'];
+    }
     this.setState({ error: true, message: msg });
     if (this.props.onError) {
       this.props.onError(msg);
@@ -56,13 +73,15 @@ class SubmitCheckResultProvider extends Component {
 
   handleAuthToken(token) {
     console.log(`handleAuthToken: ${token}`);
-    this.setState({ authToken: token });
+    this.setState({ authToken: token, message: "Received Auth Token" });
   }
 
   renderAuth() {
+    const endpoint = this.getEndpoint('authToken');
+    console.log("Auth.endpoint", endpoint);
     return (
       <AuthTokenProvider
-        endpoint={this.props.authTokenEndpoint}
+        endpoint={endpoint}
         username={this.props.username}
         password={this.props.password}
         onError={this.handleError}
@@ -79,7 +98,7 @@ class SubmitCheckResultProvider extends Component {
       return;
     }
     else {
-      this.setState({ taskId });
+      this.setState({ taskId, message: "Submitted" });
     }
     if ( this.props.onSubmitResponse ) {
       this.props.onSubmitResponse(submitResponse);
@@ -110,14 +129,15 @@ class SubmitCheckResultProvider extends Component {
     }
     const complete = this.props.isCompleteFromCheck(checkResponse);
     if ( complete ) {
-      this.setState({ completed: true });
+      this.setState({ completed: true, message: "Complete" });
       return;
     }
+    this.setState({ message: "Checking..." });
     const maxAttempts = this.props.checkMaxAttempts;
     console.log(`handleCheckComplete`, this.checkAttempts, maxAttempts );
     if( this.checkAttempts++ > maxAttempts ) {
       const msg = `Exceeded maximum number of attempts (${maxAttempts}) when checking for results to finish.`;
-      return this.handleError(msg);
+      return this.handleError(msg, checkResponse);
     }
   }
 
@@ -140,6 +160,7 @@ class SubmitCheckResultProvider extends Component {
 
   handleResultComplete(resultResponse) {
     console.log(`handleResultComplete: ${resultResponse}`);
+    this.setState({ message: "Success" });
     this.props.onResultResponse(resultResponse);
   }
 
@@ -160,7 +181,8 @@ class SubmitCheckResultProvider extends Component {
 
   renderError() {
     const msg = this.state.message;
-    return ("Error: {msg}");
+    console.error("Error: ", msg, this.state);
+    return (`Error: ${msg}`);
   }
 
   render() {
@@ -169,10 +191,13 @@ class SubmitCheckResultProvider extends Component {
     const authToken = this.state.authToken;
     const taskId = this.state.taskId;
     const completed = this.state.completed;
+    const message = this.state.message;
 
     let content = '';
+    let progress = <LinearProgress variant="query" />;
     if ( error ) {
       content = this.renderError();
+      progress = <LinearProgress variant="determinate" value={100} classes={{ colorPrimary: red[500] }} />;
     }
     else if ( ! authToken ) {
       content = this.renderAuth();
@@ -185,12 +210,15 @@ class SubmitCheckResultProvider extends Component {
     }
     else {
       content = this.renderResult();
+      progress = null;
     }
 
     console.log(`render: error=${error} authToken=${authToken} taskId=${taskId} completed=${completed}`, this.state );
 
     return (
-      <div>
+      <div className={classes.root}>
+        {message && <Typography>{message}</Typography>}
+        {progress}
         {content}
       </div>
     );
@@ -220,4 +248,4 @@ SubmitCheckResultProvider.propTypes = {
   onResultResponse: PropTypes.func.isRequired,
 };
 
-export default SubmitCheckResultProvider;
+export default withStyles(styles)(SubmitCheckResultProvider);

@@ -72,7 +72,7 @@ SYRVPRIFFRHKRIMEVRNAIGRGESSA`.trim();
   setSequenceFromFasta(queryFasta) {
     this.setState({ queryFasta });
     queryFasta = queryFasta.trim();
-    if ( queryFasta == "" ) {
+    if ( queryFasta === "" ) {
       this.setState({ error: false, errorMessage: null, queryId: null, querySequence: null });
       return;
     }

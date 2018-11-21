@@ -1,7 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import { withStyles, createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles';
+import { withStyles, createMuiTheme } from '@material-ui/core/styles';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -15,12 +15,15 @@ import Paper from '@material-ui/core/Paper';
 import Checkbox from '@material-ui/core/Checkbox';
 import Button from '@material-ui/core/Button';
 import Badge from '@material-ui/core/Badge';
+import Chip from '@material-ui/core/Chip';
 import IconButton from '@material-ui/core/IconButton';
 import Radio from '@material-ui/core/Radio';
 import Tooltip from '@material-ui/core/Tooltip';
 import DeleteIcon from '@material-ui/icons/Delete';
 import FilterListIcon from '@material-ui/icons/FilterList';
 import { lighten } from '@material-ui/core/styles/colorManipulator';
+
+import ScanMatchFigure from './ScanMatchFigure';
 
 function desc(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -47,33 +50,28 @@ function getSorting(order, orderBy) {
 }
 
 const rows = [
-  { id: 'funfam', numeric: false, disablePadding: true, label: 'Match' },
-  { id: 'description', numeric: false, disablePadding: false, label: 'FunFam Description' },
-  { id: 'members', numeric: true, disablePadding: false, label: 'Domains' },
-  { id: 'features', numeric: false, disablePadding: false, label: 'Features' },
-  { id: 'query_region', numeric: false, disablePadding: false, label: 'Query Location' },
-  { id: 'match_region', numeric: false, disablePadding: false, label: 'Match Location' },
-  { id: 'evalue', numeric: true, disablePadding: false, label: 'E-value' },
+  { id: 'funfam', numeric: false, label: 'Match' },
+  { id: 'description', numeric: false, label: 'FunFam Description' },
+  { id: 'members', numeric: true, label: 'Domains' },
+  { id: 'features', numeric: false, label: 'Features' },
+  { id: 'query_region', numeric: false, label: 'Query Location' },
+  { id: 'match_region', numeric: false, label: 'Match Location' },
+  { id: 'evalue', numeric: true, label: 'E-value' },
 ];
 
-class SelectTemplateTableHead extends React.Component {
+// FunfamMatchTableHead
+
+class FunfamMatchTableHead extends React.Component {
   createSortHandler = property => event => {
     this.props.onRequestSort(event, property);
   };
 
   render() {
-    const { onSelectAllClick, order, orderBy, numSelected, rowCount } = this.props;
+    const { order, orderBy, numSelected, rowCount } = this.props;
 
     return (
       <TableHead>
         <TableRow>
-          <TableCell padding="checkbox">
-            <Checkbox
-              indeterminate={numSelected > 0 && numSelected < rowCount}
-              checked={numSelected === rowCount}
-              onChange={onSelectAllClick}
-            />
-          </TableCell>
           {rows.map(row => {
             return (
               <TableCell
@@ -104,14 +102,14 @@ class SelectTemplateTableHead extends React.Component {
   }
 }
 
-SelectTemplateTableHead.propTypes = {
-  numSelected: PropTypes.number.isRequired,
+FunfamMatchTableHead.propTypes = {
   onRequestSort: PropTypes.func.isRequired,
-  onSelectAllClick: PropTypes.func.isRequired,
   order: PropTypes.string.isRequired,
   orderBy: PropTypes.string.isRequired,
   rowCount: PropTypes.number.isRequired,
 };
+
+// FunfamMatchTableToolbar
 
 const toolbarStyles = theme => ({
   root: {
@@ -138,7 +136,7 @@ const toolbarStyles = theme => ({
   },
 });
 
-let SelectTemplateTableToolbar = props => {
+let FunfamMatchTableToolbar = props => {
   const { numSelected, classes } = props;
 
   return (
@@ -178,12 +176,14 @@ let SelectTemplateTableToolbar = props => {
   );
 };
 
-SelectTemplateTableToolbar.propTypes = {
+FunfamMatchTableToolbar.propTypes = {
   classes: PropTypes.object.isRequired,
   numSelected: PropTypes.number.isRequired,
 };
 
-SelectTemplateTableToolbar = withStyles(toolbarStyles)(SelectTemplateTableToolbar);
+FunfamMatchTableToolbar = withStyles(toolbarStyles)(FunfamMatchTableToolbar);
+
+// FunfamMatchList
 
 const styles = theme => ({
   root: {
@@ -198,21 +198,18 @@ const styles = theme => ({
   },
 });
 
-class SelectTemplateTable extends React.Component {
+class FunfamMatchList extends React.Component {
   state = {
-    order: 'desc',
+    order: 'asc',
     orderBy: 'evalue',
     selected: [],
-    data: [],
     page: 0,
     rowsPerPage: 25,
-    radio: true,
   };
 
   componentDidMount() {
-    const data = this.props.data;
-    const radio = this.props.radio;
-    this.setState({data, radio});
+    const { scan, queryId, querySequence } = this.props;
+    this.setState({ scan, queryId, querySequence });
   }
 
   handleRequestSort = (event, property) => {
@@ -226,13 +223,6 @@ class SelectTemplateTable extends React.Component {
     this.setState({ order, orderBy });
   };
 
-  handleSelectAllClick = event => {
-    if (event.target.checked) {
-      this.setState(state => ({ selected: state.data.map(n => n.id) }));
-      return;
-    }
-    this.setState({ selected: [] });
-  };
 
   handleClick = (event, id) => {
     const { selected } = this.state;
@@ -267,74 +257,78 @@ class SelectTemplateTable extends React.Component {
 
   render() {
     const { classes } = this.props;
-    const { data, order, orderBy, selected, rowsPerPage, page, radio } = this.state;
+    const { scan, order, orderBy, selected, rowsPerPage, page, radio, queryId, querySequence } = this.state;
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, data.length - page * rowsPerPage);
 
+    const result = scan.results[0];
+    const data = result.hits.map( hit => {
+      return {
+        funfam: hit.matchId,
+        description: hit.matchDescription,
+        members: hit.funfamMembers,
+        uniq_ec_terms: hit.matchEcCount, 
+        uniq_go_terms: hit.matchGoCount, 
+        evalue: hit.significance,
+        segments: hit.hsps.map((hit, idx) => {
+          return { id: idx, start: hit.query_start, end: hit.query_end };
+        }),
+      };
+    });
+
     return (
-        <Paper className={classes.root}>
-          <SelectTemplateTableToolbar numSelected={selected.length} />
-          <div className={classes.tableWrapper}>
-            <Table className={classes.table} aria-labelledby="tableTitle">
-              <SelectTemplateTableHead
-                numSelected={selected.length}
-                order={order}
-                orderBy={orderBy}
-                onSelectAllClick={this.handleSelectAllClick}
-                onRequestSort={this.handleRequestSort}
-                rowCount={data.length}
-              />
-              <TableBody>
-                {stableSort(data, getSorting(order, orderBy))
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map(n => {
-                    const isSelected = this.isSelected(n.id);
-                    return (
-                      <TableRow
-                        hover
-                        onClick={event => this.handleClick(event, n.id)}
-                        role={radio ? "radio" : "checkbox"}
-                        aria-checked={isSelected}
-                        tabIndex={-1}
-                        key={n.id}
-                        selected={isSelected}
-                      >
-                        <TableCell padding="none">
-                          {radio ?
-                          <Radio 
-                            selected={isSelected} 
-                            value={n.id}
-                            name="rows"
-                          /> :
-                          <Checkbox
-                            checked={isSelected} 
-                            value={n.id}
-                            name="rows"
-                          />
-                          }
-                        </TableCell>
-                        <TableCell component="th" scope="row" padding="none">
-                          {n.funfam}
-                        </TableCell>
-                        <TableCell>{n.description}</TableCell>
-                        <TableCell>{n.members}</TableCell>
-                        <TableCell>
-                        {n.uniq_ec_count && <Badge badgeContent={n.uniq_ec_count} className={classes.margin}><Button variant="contained">EC</Button></Badge>}
-                        </TableCell>
-                        <TableCell>{n.query_region[0]} - {n.query_region[1]}</TableCell>
-                        <TableCell>{n.match_region[0]} - {n.match_region[1]}</TableCell>
-                        <TableCell numeric>{n.evalue}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                {emptyRows > 0 && (
-                  <TableRow style={{ height: 49 * emptyRows }}>
-                    <TableCell colSpan={8} />
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          <TablePagination
+      <Paper className={classes.root} >
+        <FunfamMatchTableToolbar numSelected={selected.length} />
+        <div className={classes.tableWrapper}>
+          <Table className={classes.table} aria-labelledby="tableTitle">
+            <FunfamMatchTableHead
+              numSelected={selected.length}
+              order={order}
+              orderBy={orderBy}
+              onRequestSort={this.handleRequestSort}
+              rowCount={scan.queryLength()}
+            />
+            <TableBody>
+              {stableSort(data, getSorting(order, orderBy))
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map(n => {
+                  const isSelected = this.isSelected(n.id);
+                  return (
+                    <TableRow
+                      hover
+                      onClick={event => this.handleClick(event, n.id)}
+                      role={radio ? "radio" : "checkbox"}
+                      aria-checked={isSelected}
+                      tabIndex={-1}
+                      key={n.id}
+                      selected={isSelected}
+                    >
+                      <TableCell component="th" scope="row">
+                        {n.funfam}
+                      </TableCell>
+                      <TableCell>{n.description}</TableCell>
+                      <TableCell>{n.members}</TableCell>
+                      <TableCell>
+                      {n.uniq_ec_terms && 
+                        <Badge badgeContent={n.uniq_ec_terms} color="primary" className={classes.ec}>
+                          <Chip label="EC" className={classes.ec} />
+                        </Badge>
+                      }
+                      </TableCell>
+                      <TableCell>
+                        <ScanMatchFigure
+                          width={250}
+                          residueLength={querySequence.length}
+                          segments={n.segments}
+                        />
+                      </TableCell>
+                      <TableCell numeric>{n.evalue}</TableCell>
+                    </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+        <TablePagination
             rowsPerPageOptions={[10, 25, 50]}
             component="div"
             count={data.length}
@@ -349,15 +343,17 @@ class SelectTemplateTable extends React.Component {
             onChangePage={this.handleChangePage}
             onChangeRowsPerPage={this.handleChangeRowsPerPage}
           />
-        </Paper>
+      </Paper>
     );
   }
 }
 
-SelectTemplateTable.propTypes = {
+FunfamMatchList.propTypes = {
   classes: PropTypes.object.isRequired,
-  data: PropTypes.array,
-  radio: PropTypes.bool,
+  scan: PropTypes.object,
+  queryId: PropTypes.string.isRequired,
+  querySequence: PropTypes.string.isRequired,
 };
-
-export default withStyles(styles)(SelectTemplateTable);
+  
+export default withStyles(styles)(FunfamMatchList);
+  
