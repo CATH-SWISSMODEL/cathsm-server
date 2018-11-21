@@ -45,5 +45,5 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^api/', include('select_template_api.urls')),
 #    url(r'^api/', include(ROUTER.urls)),
-    url(r'', include('frontend.urls')),
+    url(r'^frontend/', include('frontend.urls')),
 ]
