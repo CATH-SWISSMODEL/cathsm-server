@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
-import { withStyles } from '@material-ui/core/styles';
-import red from '@material-ui/core/colors/red';
+import { withStyles } from "@material-ui/core/styles";
+import red from "@material-ui/core/colors/red";
 import LinearProgress from "@material-ui/core/LinearProgress";
 import RemoteDataProvider from "./RemoteDataProvider";
 import AuthTokenProvider from "./AuthTokenProvider";
@@ -9,22 +9,21 @@ import { Typography } from "@material-ui/core";
 
 const styles = theme => ({
   root: {
-    width: '100%',
-  },
+    width: "100%"
+  }
 });
 
 class SubmitCheckResultProvider extends Component {
-
   static defaultProps = {
     checkInterval: 2000,
-    checkMaxAttempts: 50,
+    checkMaxAttempts: 50
   };
 
   // error: true                                       => error
   // authToken: false                                  => auth
   // authToken: true, taskId: false                    => submit
-  // authToken: true, taskId: true, completed: false   => check 
-  // authToken: true, taskId: true, completed: true    => results 
+  // authToken: true, taskId: true, completed: false   => check
+  // authToken: true, taskId: true, completed: true    => results
 
   constructor(props) {
     super(props);
@@ -33,7 +32,7 @@ class SubmitCheckResultProvider extends Component {
       error: false,
       authToken: null,
       taskId: false,
-      completed: false,
+      completed: false
     };
     this.checkAttempts = 0;
     this.handleError = this.handleError.bind(this);
@@ -44,7 +43,7 @@ class SubmitCheckResultProvider extends Component {
   }
 
   getEndpoint(type, id) {
-    const endpointName = type + 'Endpoint';
+    const endpointName = type + "Endpoint";
     const apiBase = this.props.apiBase;
     const endpointPart = this.props[endpointName];
     if (!endpointPart) {
@@ -52,22 +51,15 @@ class SubmitCheckResultProvider extends Component {
     }
     let endpoint = apiBase ? apiBase + endpointPart : endpointPart;
     if (id) {
-      endpoint = endpoint.replace('<id>', id);
+      endpoint = endpoint.replace("<id>", id);
     }
     return endpoint;
   }
 
-  handleError(msg, data) {
-    console.log("handleError", msg, data);
-    if ( data && data['non_field_error']) {
-      msg += ": " + data['non_field_error'];
-    }
+  handleError(msg) {
     this.setState({ error: true, message: msg });
     if (this.props.onError) {
       this.props.onError(msg);
-    }
-    else {
-      throw Error(`Error: ${msg}`);
     }
   }
 
@@ -77,7 +69,7 @@ class SubmitCheckResultProvider extends Component {
   }
 
   renderAuth() {
-    const endpoint = this.getEndpoint('authToken');
+    const endpoint = this.getEndpoint("authToken");
     console.log("Auth.endpoint", endpoint);
     return (
       <AuthTokenProvider
@@ -91,22 +83,21 @@ class SubmitCheckResultProvider extends Component {
   }
 
   handleSubmitComplete(submitResponse) {
-    console.log('handleSubmitComplete: ', submitResponse);
+    console.log("handleSubmitComplete: ", submitResponse);
     const taskId = this.props.taskIdFromSubmit(submitResponse);
-    if ( !taskId ) {
+    if (!taskId) {
       this.handleError(`Failed to get Task ID from response`);
       return;
-    }
-    else {
+    } else {
       this.setState({ taskId, message: "Submitted" });
     }
-    if ( this.props.onSubmitResponse ) {
+    if (this.props.onSubmitResponse) {
       this.props.onSubmitResponse(submitResponse);
     }
   }
 
   renderSubmit() {
-    const endpoint = this.getEndpoint('submit');
+    const endpoint = this.getEndpoint("submit");
     const authToken = this.state.authToken;
     const submitData = this.props.submitData;
     return (
@@ -124,18 +115,18 @@ class SubmitCheckResultProvider extends Component {
 
   handleCheckComplete(checkResponse) {
     console.log(`handleCheckComplete: `, checkResponse, this.checkAttempts);
-    if ( this.props.onCheckResponse ) {
+    if (this.props.onCheckResponse) {
       this.props.onCheckResponse(checkResponse);
     }
     const complete = this.props.isCompleteFromCheck(checkResponse);
-    if ( complete ) {
+    if (complete) {
       this.setState({ completed: true, message: "Complete" });
       return;
     }
     this.setState({ message: "Checking..." });
     const maxAttempts = this.props.checkMaxAttempts;
-    console.log(`handleCheckComplete`, this.checkAttempts, maxAttempts );
-    if( this.checkAttempts++ > maxAttempts ) {
+    console.log(`handleCheckComplete`, this.checkAttempts, maxAttempts);
+    if (this.checkAttempts++ > maxAttempts) {
       const msg = `Exceeded maximum number of attempts (${maxAttempts}) when checking for results to finish.`;
       return this.handleError(msg, checkResponse);
     }
@@ -144,7 +135,7 @@ class SubmitCheckResultProvider extends Component {
   renderCheck() {
     const authToken = this.state.authToken;
     const taskId = this.state.taskId;
-    const endpoint = this.getEndpoint('check', taskId);
+    const endpoint = this.getEndpoint("check", taskId);
     const interval = this.props.checkInterval;
     return (
       <RemoteDataProvider
@@ -167,7 +158,7 @@ class SubmitCheckResultProvider extends Component {
   renderResult() {
     const authToken = this.state.authToken;
     const taskId = this.state.taskId;
-    const endpoint = this.getEndpoint('result', taskId);
+    const endpoint = this.getEndpoint("result", taskId);
     return (
       <RemoteDataProvider
         key="remote-data-provider-result"
@@ -182,7 +173,7 @@ class SubmitCheckResultProvider extends Component {
   renderError() {
     const msg = this.state.message;
     console.error("Error: ", msg, this.state);
-    return (`Error: ${msg}`);
+    return `Error: ${msg}`;
   }
 
   render() {
@@ -193,27 +184,32 @@ class SubmitCheckResultProvider extends Component {
     const completed = this.state.completed;
     const message = this.state.message;
 
-    let content = '';
+    let content = "";
     let progress = <LinearProgress variant="query" />;
-    if ( error ) {
+    if (error) {
       content = this.renderError();
-      progress = <LinearProgress variant="determinate" value={100} classes={{ colorPrimary: red[500] }} />;
-    }
-    else if ( ! authToken ) {
+      progress = (
+        <LinearProgress
+          variant="determinate"
+          value={100}
+          classes={{ colorPrimary: red[500] }}
+        />
+      );
+    } else if (!authToken) {
       content = this.renderAuth();
-    }
-    else if ( ! taskId ) {
+    } else if (!taskId) {
       content = this.renderSubmit();
-    }
-    else if ( ! completed ) {
+    } else if (!completed) {
       content = this.renderCheck();
-    }
-    else {
+    } else {
       content = this.renderResult();
       progress = null;
     }
 
-    console.log(`render: error=${error} authToken=${authToken} taskId=${taskId} completed=${completed}`, this.state );
+    console.log(
+      `render: error=${error} authToken=${authToken} taskId=${taskId} completed=${completed}`,
+      this.state
+    );
 
     return (
       <div className={classes.root}>
@@ -245,7 +241,7 @@ SubmitCheckResultProvider.propTypes = {
   onError: PropTypes.func.isRequired,
   onSubmitResponse: PropTypes.func,
   onCheckResponse: PropTypes.func,
-  onResultResponse: PropTypes.func.isRequired,
+  onResultResponse: PropTypes.func.isRequired
 };
 
 export default withStyles(styles)(SubmitCheckResultProvider);
