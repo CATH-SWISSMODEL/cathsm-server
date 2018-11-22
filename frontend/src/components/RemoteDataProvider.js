@@ -2,9 +2,8 @@ import { Component } from "react";
 import PropTypes from "prop-types";
 
 class RemoteDataProvider extends Component {
-
   static defaultProps = {
-    method: "GET",
+    method: "GET"
   };
 
   constructor(props) {
@@ -17,14 +16,14 @@ class RemoteDataProvider extends Component {
     const interval = this.props.interval;
     this.timer = null;
     this.fetchData();
-    if ( interval ) {
+    if (interval) {
       console.log(`RemoteDataProvider().componentDidMount.setInterval`);
       this.timer = setInterval(() => this.fetchData(), interval);
     }
   }
 
   componentWillUnmount() {
-    console.log('RemoteDataProvider().componentWillUnmount');
+    console.log("RemoteDataProvider().componentWillUnmount");
     clearInterval(this.timer);
   }
 
@@ -37,37 +36,44 @@ class RemoteDataProvider extends Component {
     let opts = {
       method,
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        Accept: "application/json",
+        "Content-Type": "application/json"
       }
     };
-    if ( authToken ) {
-      opts.headers['Authorization'] = `token ${authToken}`;
+    if (authToken) {
+      opts.headers["Authorization"] = `token ${authToken}`;
     }
-    if ( data ) {
-      opts['body'] = JSON.stringify(data);
+    if (data) {
+      opts["body"] = JSON.stringify(data);
     }
 
-    console.log(`Submitting data to ${endpoint}: method=${method}, auth=${authToken}, data=${data}`, opts);
+    console.log(
+      `Submitting data to ${endpoint}: method=${method}, auth=${authToken}, data=${data}`,
+      opts
+    );
 
-    return fetch(endpoint, opts).then(response => {
-      if (!response.ok) {
-        throw Error(response.statusText);
-      }
-      return response;
-    })
-    .then(response => response.json())
-    .then(responseJson => {
-      console.log("fetchData.responseJson", responseJson);
-      this.props.onComplete(responseJson);
-    })
-    .catch((error) => {
-      const msg = `An error occurred when submitting sequence: ${error}`;
-      this.props.onError(msg);
-    });
+    return fetch(endpoint, opts)
+      .then(response => Promise.all([response.ok, response.json()]))
+      .then(([responseOk, body]) => {
+        if (responseOk) {
+          this.props.onComplete(body);
+        } else {
+          const msg = body["non_field_errors"]
+            ? body["non_field_errors"]
+            : "Unexpected error";
+          throw Error(msg);
+        }
+      })
+      .catch(error => {
+        const msg = `RemoteDataProvider failed to get data: ${error}`;
+        console.error(msg);
+        this.props.onError(msg);
+      });
   }
 
-  render() { return null; }
+  render() {
+    return null;
+  }
 }
 
 RemoteDataProvider.propTypes = {
@@ -77,7 +83,7 @@ RemoteDataProvider.propTypes = {
   data: PropTypes.object,
   interval: PropTypes.number,
   onError: PropTypes.func.isRequired,
-  onComplete: PropTypes.func.isRequired,
+  onComplete: PropTypes.func.isRequired
 };
 
 export default RemoteDataProvider;
