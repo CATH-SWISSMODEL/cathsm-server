@@ -1,9 +1,8 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import SearchHsp from './SearchHsp';
+import React from "react";
+import PropTypes from "prop-types";
+import SearchHsp from "./SearchHsp";
 
-class SearchHit extends React.Component {
-
+export class SearchHit extends React.Component {
   constructor(props) {
     super(props);
 
@@ -20,14 +19,12 @@ class SearchHit extends React.Component {
     this.hsps = props.hsps.map(hspData => new SearchHsp(hspData));
   }
 
-  matchHasStructure = () => this.repSourceId === 'cath';
+  matchHasStructure = () => this.repSourceId === "cath";
 
-  render() { return null }
+  render() {
+    return null;
+  }
 }
-
-SearchHit.defaultProps = {
-  data: {}
-};
 
 SearchHit.propTypes = {
   matchId: PropTypes.string.isRequired,
@@ -38,7 +35,7 @@ SearchHit.propTypes = {
   matchEcCount: PropTypes.string.isRequired,
   matchGoCount: PropTypes.string.isRequired,
   matchFunfamMembers: PropTypes.string.isRequired,
-  repSourceId: PropTypes.string.isRequired,
+  repSourceId: PropTypes.string.isRequired
 };
 
 export default SearchHit;

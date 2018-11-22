@@ -1,25 +1,26 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React from "react";
+import PropTypes from "prop-types";
 
-class SearchHsp extends React.Component {
-
-  propTypes = {
-    queryStart: PropTypes.string.isRequired,
-    queryEnd: PropTypes.string.isRequired,
-    matchStart: PropTypes.string.isRequired,
-    matchEnd: PropTypes.string.isRequired,
-  };
-
+export class SearchHsp extends React.Component {
   constructor(props) {
-    super();
+    super(props);
 
     const { queryStart, queryEnd, matchStart, matchEnd } = props;
     this.queryStart = queryStart;
-    this.queryEnd   = queryEnd;
+    this.queryEnd = queryEnd;
     this.matchStart = matchStart;
-    this.matchEnd   = matchEnd;
+    this.matchEnd = matchEnd;
   }
-  render() { return null }
+  render() {
+    return null;
+  }
 }
+
+SearchHsp.propTypes = {
+  queryStart: PropTypes.string.isRequired,
+  queryEnd: PropTypes.string.isRequired,
+  matchStart: PropTypes.string.isRequired,
+  matchEnd: PropTypes.string.isRequired
+};
 
 export default SearchHsp;

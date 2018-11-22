@@ -1,32 +1,29 @@
-import React from 'react';
+import React from "react";
 import PropTypes from "prop-types";
-import SearchHit from './SearchHit';
+import SearchHit from "./SearchHit";
 
-class SearchResult extends React.Component {
-
-  propTypes = {
-    queryId: PropTypes.string.isRequired,
-    queryLength: PropTypes.string.isRequired,
-    hits: PropTypes.array.isRequired,
-  };
-
-  defaultProps = {
-    hits: [],
-  };
-
+export class SearchResult extends React.Component {
   constructor(props) {
     super(props);
-
-    console.log("SearchResults.new", props);
 
     const { queryId, queryLength, hits } = props;
     this.queryId = queryId;
     this.queryLength = queryLength;
     this.hits = hits;
-    if ( hits.length ) {
+    if (hits.length) {
       this.hits = hits.map(hitData => new SearchHit(hitData));
     }
   }
 }
+
+SearchResult.defaultProps = {
+  hits: []
+};
+
+SearchResult.propTypes = {
+  queryId: PropTypes.string.isRequired,
+  queryLength: PropTypes.string.isRequired,
+  hits: PropTypes.array.isRequired
+};
 
 export default SearchResult;
