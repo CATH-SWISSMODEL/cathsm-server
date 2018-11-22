@@ -7,7 +7,7 @@ class SearchScan extends React.Component {
   constructor(props) {
     super(props);
 
-    const { queryId, querySequence, renderMatchId, featureCols, results } =
+    const { queryId, querySequence, results } =
       props || {};
     this.queryId = queryId;
     this.querySequence = querySequence;

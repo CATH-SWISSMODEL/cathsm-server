@@ -1,7 +1,6 @@
 import React from "react";
-import classNames from "classnames";
 import PropTypes from "prop-types";
-import { withStyles, createMuiTheme } from "@material-ui/core/styles";
+import { withStyles } from "@material-ui/core/styles";
 
 const styles = theme => ({
   root: {

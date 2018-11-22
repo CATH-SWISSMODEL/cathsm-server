@@ -14,7 +14,7 @@ import FunfamMatchList from "./FunfamMatchList.js";
 import ModelStructure from "./ModelStructure.js";
 import SubmitCheckResultProvider from "./SubmitCheckResultProvider.js";
 
-import SearchScan, { parseCathScanResponseData } from "../models/SearchScan.js";
+import { parseCathScanResponseData } from "../models/SearchScan.js";
 
 const styles = theme => ({
   root: {
@@ -208,7 +208,6 @@ class WorkFlow extends React.Component {
     const {
       queryId,
       querySequence,
-      templateError,
       templateScanResult
     } = this.state;
     const templateSubmitData = {

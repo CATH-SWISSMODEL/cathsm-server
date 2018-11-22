@@ -1,7 +1,7 @@
 import React from "react";
 import classNames from "classnames";
 import PropTypes from "prop-types";
-import { withStyles, createMuiTheme } from "@material-ui/core/styles";
+import { withStyles } from "@material-ui/core/styles";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
@@ -12,12 +12,10 @@ import TableSortLabel from "@material-ui/core/TableSortLabel";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
-import Checkbox from "@material-ui/core/Checkbox";
 import Button from "@material-ui/core/Button";
 import Badge from "@material-ui/core/Badge";
 import Chip from "@material-ui/core/Chip";
 import IconButton from "@material-ui/core/IconButton";
-import Radio from "@material-ui/core/Radio";
 import Tooltip from "@material-ui/core/Tooltip";
 import DeleteIcon from "@material-ui/icons/Delete";
 import FilterListIcon from "@material-ui/icons/FilterList";
@@ -68,7 +66,7 @@ class FunfamMatchTableHead extends React.Component {
   };
 
   render() {
-    const { order, orderBy, numSelected, rowCount } = this.props;
+    const { order, orderBy } = this.props;
 
     return (
       <TableHead>
@@ -265,12 +263,9 @@ class FunfamMatchList extends React.Component {
       rowsPerPage,
       page,
       radio,
-      queryId,
       querySequence
     } = this.state;
     const hits = scanResult ? scanResult.hits : [];
-    const emptyRows =
-      rowsPerPage - Math.min(rowsPerPage, hits.length - page * rowsPerPage);
 
     const data = hits.map(hit => {
       return {
