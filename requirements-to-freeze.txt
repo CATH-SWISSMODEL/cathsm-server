@@ -16,3 +16,4 @@ tqdm
 flex
 swagger_spec_validator
 django-cors-headers
+gunicorn
