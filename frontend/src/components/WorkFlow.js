@@ -205,11 +205,7 @@ class WorkFlow extends React.Component {
     const stepConfig = this.getStepConfigById("select-template");
     const dataProps = stepConfig["providerProps"];
 
-    const {
-      queryId,
-      querySequence,
-      templateScanResult
-    } = this.state;
+    const { queryId, querySequence, templateScanResult } = this.state;
     const templateSubmitData = {
       query_id: queryId,
       query_sequence: querySequence
