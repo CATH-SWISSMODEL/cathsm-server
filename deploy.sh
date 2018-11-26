@@ -100,6 +100,19 @@ function update {
     update_code
     update_web
 
+    HTTP_SITECONF_FILENAME=cathapi-${RELEASE}.conf
+    HTTP_SITECONF_SRC=$HTTP_BASE/sites-available/$HTTP_SITECONF_FILENAME
+    HTTP_SITECONF_LINK=$HTTP_BASE/sites-enabled/$HTTP_SITECONF_FILENAME
+    if [ ! -e $HTTP_SITECONF_SRC ]; then
+        echo "HTTP config file does not exist: $HTTP_SITECONF_SRC"
+        exit 5
+    fi
+
+    if [ ! -e $HTTP_SITECONF_LINK ]; then
+        echo "Adding link for site config ... "
+        (set -x; sudo cd $HTTP_BASE/sites-enabled/ && sudo ln -s ../sites-available/$HTTP_SITECONF_FILENAME .)
+    fi
+
     echo "Restarting httpd (requires sudo) ... "
     (set -x; sudo systemctl restart httpd)
     echo "  ... done"
