@@ -1,13 +1,14 @@
 #!/bin/bash
 #
 # Usage:
-#   $ sudo deploy.sh <action> <release>
-#
-# action:  { init | update }
-# release: { dev | staging | prod }
+#   $ deploy.sh { dev | staging | prod } init
+#   $ deploy.sh { dev | staging | prod } update
 
-CATHPY_LATEST_TAG="0.0.1"
-CATHAPI_LATEST_TAG="0.0.1"
+# die on any error
+set -e
+
+CATHPY_LATEST_TAG="v0.0.1"
+CATHAPI_LATEST_TAG="v0.0.1"
 
 CATHPY_SOURCE="https://github.com/UCL/cathpy.git"
 CATHPY_TAG=${CATHPY_TAG:-$CATHPY_LATEST_TAG}
@@ -15,26 +16,29 @@ CATHPY_TAG=${CATHPY_TAG:-$CATHPY_LATEST_TAG}
 CATHAPI_SOURCE="https://github.com/CATH-SWISSMODEL/cath-swissmodel-api.git"
 
 HTTP_BASE=/etc/httpd
-VHOSTS_BASE=/var/www/vhosts/
+VHOSTS_BASE=/var/www/vhosts
 DEBUG_FLAG=0
 
 if [[ $# -eq 0 ]]; then
-    echo "usage: $0 <action> <release>"
+    echo "Usage:"
+    echo "    deploy.sh { dev | staging | prod } init"
+    echo "    deploy.sh { dev | staging | prod } update"
+    echo
     exit 0
 fi
 
-ACTION="$1"
-RELEASE="$2"
+RELEASE="$1"
+ACTION="$2"
+CATHAPI_BRANCH=""
 
 case "$RELEASE" in
     dev)
-        CATHAPI_TAG=${CATHAPI_TAG:-"HEAD"}
         ;;
     staging)
-        CATHAPI_TAG=${CATHAPI_TAG:-$CATHAPI_LATEST_TAG}
+        CATHAPI_BRANCH="--branch=${CATHAPI_TAG:-$CATHAPI_LATEST_TAG}"
         ;;
     prod)
-        CATHAPI_TAG=${CATHAPI_TAG:-$CATHAPI_LATEST_TAG}
+        CATHAPI_BRANCH="--branch=${CATHAPI_TAG:-$CATHAPI_LATEST_TAG}"
         ;;
     *)
         echo "unknown release type: $RELEASE (expected < dev | staging | prod >)"
@@ -42,12 +46,15 @@ case "$RELEASE" in
 esac
 
 BASEDIR=$VHOSTS_BASE/cathapi-${RELEASE}
-USER=$(who am i)
+USER=$(whoami)
 
 CATHPY_DIR=$BASEDIR/cathpy
 CATHAPI_DIR=$BASEDIR/cath-swissmodel-api
 
-echo "# USER           $USER"
+echo
+echo "#####################################################"
+echo "# CATH API deployment"
+echo "#####################################################"
 echo "# ACTION         $ACTION"
 echo "# RELEASE        $RELEASE"
 echo "# BASEDIR        $BASEDIR"
@@ -55,31 +62,43 @@ echo "# CATHPY_SOURCE  $CATHPY_SOURCE"
 echo "# CATHPY_TAG     $CATHPY_TAG"
 echo "# CATHPY_DIR     $CATHPY_DIR"
 echo "# CATHAPI_SOURCE $CATHAPI_SOURCE"
-echo "# CATHAPI_TAG    $CATHAPI_TAG"
+echo "# CATHAPI_BRANCH $CATHAPI_BRANCH"
 echo "# CATHAPI_DIR    $CATHAPI_DIR"
+echo "#####################################################"
+echo
 
-update_code() {
-    echo "Updating CATHAPI code [tag: $CATHAPI_TAG] from $GIT_SOURCE ..."
-    (set -x; git clone --branch $CATHAPI_TAG $CATHAPI_SOURCE $CATHAPI_DIR)
+function update_code {
+    if [ -d "$CATHAPI_DIR" ]; then
+        echo "Refreshing existing CATHAPI code from $CATHAPI_SOURCE ..."
+        (set -x; cd $CATHAPI_DIR; git pull; git checkout $CATHAPI_BRANCH)
+    else
+        echo "Clone new CATHAPI code from $CATHAPI_SOURCE ..."
+        (set -x; git clone $CATHAPI_BRANCH $CATHAPI_SOURCE $CATHAPI_DIR)
+    fi
     echo "  ... done"
     echo 
 
-    echo "Updating CATHPY code [tag: $CATHPY_TAG] from $CATHPY_SOURCE ..."
-    (set -x; git clone --branch $CATHPY_TAG $CATHPY_SOURCE $CATHPY_DIR)
+    if [ -d "$CATHPY_DIR" ]; then
+        echo "Refreshing existing CATHPY code [tag: $CATHPY_TAG] from $CATHPY_SOURCE ..."
+        (set -x; cd $CATHPY_DIR; git pull origin $CATHPY_TAG; git checkout $CATHPY_TAG)
+    else
+        echo "Clone new CATHPY code from $CATHPY_SOURCE ..."
+        (set -x; git clone --branch=$CATHPY_TAG $CATHPY_SOURCE $CATHPY_DIR)
+    fi
     echo "  ... done"
     echo 
 }
 
-update_web() {
+function update_web {
     echo "Updating web config (requires sudo) ... "
     (set -x; sudo rsync -av $CATHAPI_DIR/deploy/httpd/ $HTTP_BASE/)
     echo "  ... done"
     echo
 }
 
-update() {
-    update_code()
-    update_web()
+function update {
+    update_code
+    update_web
 
     echo "Restarting httpd (requires sudo) ... "
     (set -x; sudo systemctl restart httpd)
@@ -88,43 +107,73 @@ update() {
 }
 
 # do one-off stuff
-init() {
+function init {
 
     echo "Making sure app dir '$BASEDIR' exists and is owned by $USER ... (requires sudo)"
-    (set -x; sudo mkdir -p $BASEDIR && chown -R $USER:users $BASEDIR)
+    (set -x; sudo mkdir -p $BASEDIR && sudo chown -R $USER:users $BASEDIR)
     echo "  ... done"
     echo 
 
-    update_code()
-    update_web()
+    update_code
+    update_web
 
     echo "Setting up httpd service (requires sudo) ... "
-    (set -x; sudo systemctl enable httpd && systemctl start httpd)
+    (set -x; sudo systemctl enable httpd && sudo systemctl start httpd)
     echo "  ... done"
     echo
 
-    # generate secret key
-    echo "Generating Django secret key ... " 
-    DJANGO_SECRET_KEY=`openssl rand -base64 48`
-    if [ $? -ne 0 ]; then
-        echo "Error creating secret key."
-        exit 3
+    APPDIR=$BASEDIR/cath-swissmodel-api/cathapi
+
+    SECRET_KEY_FILE=$APPDIR/cathapi/secret_key.txt
+    if [ ! -e $SECRET_KEY_FILE ]; then
+        echo "Generating Django secret key ... " 
+        DJANGO_SECRET_KEY=`openssl rand -base64 48`
+        if [ $? -ne 0 ]; then
+            echo "Error creating secret key."
+            exit 3
+        fi
+        echo $DJANGO_SECRET_KEY > $SECRET_KEY_FILE
+        echo "  ... done"
+        echo
     fi
-    echo $DJANGO_SECRET_KEY > $APPDIR/cathapi/secret_key.txt
+
+    echo "Installing Python ... "
+    (set -x; sudo yum install centos-release-scl rh-python36 rh-python36-python-devel rh-python36-mod_wsgi)
+
+    VENV_DIR=$APPDIR/venv
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "Installing Python environment ... "
+        (set -x; cd $APPDIR && scl enable rh-python36 python -m venv venv)
+        echo "  ... done"
+        echo
+    fi
+
+    echo "Updating Python environment ... "
+    (source $APPDIR/venv/bin/activate; set -x; \
+        pip install -q --upgrade pip \
+        && pip install -q -r $APPDIR/requirements-to-freeze.txt )
     echo "  ... done"
     echo
 
-
+    HTTP_WSGI_MODULE_FILE=$HTTP_BASE/conf.modules.d/10-wsgi.conf
+    if [ ! -f $HTTP_WSGI_MODULE_FILE ]; then
+        echo "Creating WSGI MODULE file ... "
+        #pip install mod_wsgi
+        (source $APPDIR/venv/bin/activate; set -x; \
+            mod_wsgi-express module-config > $HTTP_WSGI_MODULE_FILE)
+        echo "  ... done"
+        echo
+    fi
 }
 
 case "$ACTION" in
     init)
         echo "Initialising deployment ..."
-        init()
+        init
         ;;
     update)
         echo "Updating existing deployment ..."
-        update()
+        update
         ;;
     info)
         ;;
@@ -134,4 +183,5 @@ case "$ACTION" in
         ;;
 esac
 
+echo
 echo "DONE"
