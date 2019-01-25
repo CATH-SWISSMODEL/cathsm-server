@@ -5,6 +5,7 @@ import tempfile
 import re
 import json
 import argparse
+import time
 
 # non-core
 import requests
@@ -112,6 +113,7 @@ def main():
     parser.add_argument('--out', type=str, required=True, dest='outfile', help='output PDB file')
     parser.add_argument('--user', type=str, required=False, dest='sm_user', help='specify sm user')
     parser.add_argument('--pass', type=str, required=False, dest='sm_pass', help='specify sm password')
+    parser.add_argument('--sleep', type=float, default=10, dest='sleep', help='waiting time between requests')
     args = parser.parse_args()
 
     sm_user = DEFAULT_SM_USER
@@ -149,6 +151,8 @@ def main():
         LOG.info("   status: {}".format(status) )
         if status == 'COMPLETED':
             break
+        else:
+            time.sleep(args.sleep)
 
     LOG.info("Retrieving results ... ")
     result_r = client.results(project_id)
