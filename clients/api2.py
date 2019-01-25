@@ -151,6 +151,9 @@ def main():
         LOG.info("   status: {}".format(status) )
         if status == 'COMPLETED':
             break
+        elif status == "FAILED":
+            LOG.error("Modelling failed: " + status_r['message'])
+            sys.exit(1)
         else:
             time.sleep(args.sleep)
 
