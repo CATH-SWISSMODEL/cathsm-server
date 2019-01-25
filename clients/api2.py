@@ -9,8 +9,8 @@ import argparse
 # non-core
 import requests
 
-DEFAULT_SMR_USER='junk@sillit.com'
-DEFAULT_SMR_PASSWORD='FJRbnz'
+DEFAULT_SM_USER='junk@sillit.com'
+DEFAULT_SM_PASSWORD='FJRbnz'
 DEFAULT_BASE_URL='https://beta.swissmodel.expasy.org'
 
 logging.basicConfig(
@@ -18,7 +18,7 @@ logging.basicConfig(
         level=logging.INFO)
 LOG = logging.getLogger(__name__)
 
-class SmrAlignmentData(object):
+class SmAlignmentData(object):
 
     def __init__(self, *, target_sequence, template_sequence, template_seqres_offset, 
             pdb_id, auth_asym_id, assembly_id=None, project_id=None):
@@ -35,7 +35,7 @@ class SmrAlignmentData(object):
         try:
             data = json.load(infile)
         except Exception as err:
-            raise Exception("failed to load SmrAlignment from json file {}: {}".format(infile, err))
+            raise Exception("failed to load SmAlignment from json file {}: {}".format(infile, err))
         if 'meta' in data:
             del data['meta']
         return cls(**data)
@@ -45,7 +45,7 @@ class SmrAlignmentData(object):
         data = dict((k, v) for k, v in data.items() if v != None)
         return data
 
-class SmrClient(object):
+class SmClient(object):
     """
     Client for API 2 (SWISSMODEL)
 
@@ -95,8 +95,8 @@ class SmrClient(object):
 
         return response_data
 
-    def authenticate(self, *, smr_user=None, smr_pass=None):
-        data = { 'username': smr_user, 'password': smr_pass }
+    def authenticate(self, *, sm_user=None, sm_pass=None):
+        data = { 'username': sm_user, 'password': sm_pass }
         LOG.debug('get_auth_headers.data: {}'.format(data))
         headers = { 'accept': 'application/json' }
         r = requests.post(self.base_url + '/api-token-auth/', data=data, headers=headers)
@@ -110,33 +110,33 @@ def main():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--in', type=str, required=True, dest='infile', help='input data file (json)')
     parser.add_argument('--out', type=str, required=True, dest='outfile', help='output PDB file')
-    parser.add_argument('--user', type=str, required=False, dest='smr_user', help='specify smr user')
-    parser.add_argument('--pass', type=str, required=False, dest='smr_pass', help='specify smr password')
+    parser.add_argument('--user', type=str, required=False, dest='sm_user', help='specify sm user')
+    parser.add_argument('--pass', type=str, required=False, dest='sm_pass', help='specify sm password')
     args = parser.parse_args()
 
-    smr_user = DEFAULT_SMR_USER
-    if args.smr_user:
-        smr_user = args.smr_user
-    elif 'SMR_USER' in os.environ:
-        smr_user = os.environ['SMR_USER']
+    sm_user = DEFAULT_SM_USER
+    if args.sm_user:
+        sm_user = args.sm_user
+    elif 'SM_USER' in os.environ:
+        sm_user = os.environ['SM_USER']
      
-    smr_pass = DEFAULT_SMR_PASSWORD
-    if args.smr_pass:
-        smr_pass = args.smr_pass
-    elif 'SMR_PASSWORD' in os.environ:
-        smr_pass = os.environ['SMR_PASSWORD']
+    sm_pass = DEFAULT_SM_PASSWORD
+    if args.sm_pass:
+        sm_pass = args.sm_pass
+    elif 'SM_PASSWORD' in os.environ:
+        sm_pass = os.environ['SM_PASSWORD']
 
     with open(args.infile) as infile:
-        aln_data = SmrAlignmentData.load(infile)
+        aln_data = SmAlignmentData.load(infile)
 
     LOG.info("IN:  {}".format(args.infile))
     LOG.info("OUT: {}".format(args.outfile))
 
     LOG.info("Initialising Client ...")
-    client = SmrClient()
+    client = SmClient()
    
     LOG.info("Authenticating ... ")
-    client.authenticate(smr_user=smr_user, smr_pass=smr_pass)
+    client.authenticate(sm_user=sm_user, sm_pass=sm_pass)
     
     LOG.info("Submitting data ... ")
     submit_r = client.submit(aln_data)
