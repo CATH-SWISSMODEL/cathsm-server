@@ -90,7 +90,7 @@ class SmClient(object):
 
     def results(self, project_id):
 
-        status_url = '{}/alignment/{}'.format(self.base_url, project_id)
+        status_url = '{}/alignment/{}/'.format(self.base_url, project_id)
         r = requests.get(status_url, headers=self.headers)
         response_data = r.json()
 
