@@ -19,13 +19,20 @@ BASE_DIR = os.path.abspath(__file__ + '/../../../')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = None
+secret_files = []
 for secret_dir in [BASE_DIR, '/etc']:
     secret_file = os.path.join(secret_dir, 'secret_key.txt')
     try:
         with open(secret_file) as f:
             SECRET_KEY = f.read().strip()
     except FileNotFoundError:
+        secret_files.extend([secret_file])
         continue
+
+if not SECRET_KEY:
+    raise FileNotFoundError('failed to get SECRET_KEY from local file, tried: {}'.format(", ".join(secret_files)))
+
+del secret_files
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -221,5 +228,3 @@ logging.config.dictConfig({
         },
     }
 })
-
-print( "base.SECRET_KEY: {}".format(SECRET_KEY) )
