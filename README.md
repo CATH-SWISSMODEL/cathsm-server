@@ -10,7 +10,7 @@ pip install -e .
 ## Test
 
 ```
-python3 manage.py test
+pytest
 ```
 
 ## Run server
