@@ -10,7 +10,7 @@ from .views import (SelectTemplateTaskCreateView, SelectTemplateTaskStatusView,
 app_name = "select_template_api"
 
 urlpatterns = {
-    url(r'^api-auth-token/', views.obtain_auth_token, name="auth_token"),
+    url(r'^api-token-auth/', views.obtain_auth_token, name="auth_token"),
     url(r'^select-template/$',
         SelectTemplateTaskCreateView.as_view(), name="create_selecttemplate"),
     url(r'^select-template/(?P<uuid>[0-9a-f\-]{32,40})/$',
