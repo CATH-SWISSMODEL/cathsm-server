@@ -28,7 +28,7 @@ class CustomOpenAPISchemaGenerator(OpenAPISchemaGenerator):
 
 SelectTemplateApi = get_schema_view(
     openapi.Info(
-        title="CATH-SWISSMODEL API 1",
+        title="CATH-SWISSMODEL API",
         default_version='v0.0.1',
         description=("Select a template structure on which to model "
                      "the 3D coordinates of a given protein sequence."),
