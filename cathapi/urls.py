@@ -18,6 +18,13 @@ from django.conf.urls import url, include
 from rest_framework import permissions, routers
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from drf_yasg.generators import OpenAPISchemaGenerator
+
+class CustomOpenAPISchemaGenerator(OpenAPISchemaGenerator):
+    def get_schema(self, *args, **kwargs):
+        schema = super().get_schema(*args, **kwargs)
+        schema.basePath = '/api' # API prefix
+        return schema
 
 SelectTemplateApi = get_schema_view(
     openapi.Info(
@@ -31,6 +38,7 @@ SelectTemplateApi = get_schema_view(
     ),
     validators=['flex', 'ssv'],
     public=True,
+    generator_class=CustomOpenAPISchemaGenerator,
     permission_classes=(permissions.AllowAny,),
 )
 
