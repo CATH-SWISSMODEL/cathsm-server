@@ -6,15 +6,15 @@ from django.shortcuts import get_object_or_404
 
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
-from .serializers import (SelectTemplateQuerySerializer, SelectTemplateStatusSerializer, 
-    SelectTemplateResultsSerializer)
-    
+from .serializers import (SelectTemplateQuerySerializer, SelectTemplateStatusSerializer,
+                          SelectTemplateResultsSerializer)
+
 from .models import SelectTemplateTask
-from .models import STATUS_UNKNOWN, STATUS_QUEUED, STATUS_RUNNING, STATUS_ERROR, STATUS_SUCCESS
+from .models import STATUS_ERROR
 
 LOG = logging.getLogger(__name__)
+
 
 class TemplateTaskView(object):
     """Generic view for TemplateTask."""
