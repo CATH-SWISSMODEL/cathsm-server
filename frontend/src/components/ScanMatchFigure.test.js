@@ -1,19 +1,11 @@
 import React from "react";
-import { mount } from "enzyme";
+import { shallow } from "enzyme";
 import ScanMatchFigure from "./ScanMatchFigure";
 import { parseCathScanResponseData } from "../models/SearchScan";
 import testScanJson from "../models/test_data/CathScanResults.test.json";
 
 describe("ScanMatchFigure", () => {
   let props;
-  let mountedScanMatchFigure;
-
-  const scanMatchFigure = () => {
-    if (!mountedScanMatchFigure) {
-      mountedScanMatchFigure = mount(<ScanMatchFigure {...props} />);
-    }
-    return mountedScanMatchFigure;
-  };
 
   beforeEach(() => {
     const testScanData = JSON.parse(testScanJson.results_json);
@@ -29,14 +21,15 @@ describe("ScanMatchFigure", () => {
       segments: testScanSegments,
       width: 200
     };
-    mountedScanMatchFigure = undefined;
   });
 
   // All tests will go here
 
   it("create new okay", () => {
-    const scanMatch = scanMatchFigure();
+    const wrapper = shallow(<ScanMatchFigure {...props} />)
+    const scanMatch = wrapper.find(ScanMatchFigure)
+    console.log("wrapper", wrapper);
     console.log("scanMatch", scanMatch);
-    expect(scanMatch).toBeInstanceOf(ScanMatchFigure);
+    expect(scanMatch).equals(ScanMatchFigure);
   });
 });

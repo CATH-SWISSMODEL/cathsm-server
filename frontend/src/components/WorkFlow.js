@@ -16,6 +16,10 @@ import SubmitCheckResultProvider from "./SubmitCheckResultProvider.js";
 
 import { parseCathScanResponseData } from "../models/SearchScan.js";
 
+import DummyCathScanResults from "../models/test_data/CathScanResults.test.json"; 
+
+const STEP_QUERY=0, STEP_TEMPLATE=1, STEP_MODEL=2;
+
 const styles = theme => ({
   root: {
     width: "100%"
@@ -115,6 +119,10 @@ class WorkFlow extends React.Component {
     this.handleTemplateSubmit = this.handleTemplateSubmit.bind(this);
     this.handleTemplateCheck = this.handleTemplateCheck.bind(this);
     this.handleTemplateResult = this.handleTemplateResult.bind(this);
+
+    this.handleExampleSequence = this.handleExampleSequence.bind(this);
+    this.handleExampleScanResults = this.handleExampleScanResults.bind(this);
+
     // this.handleModelError = this.handleModelError.bind(this);
     // this.handleModelSubmit = this.handleModelSubmit.bind(this);
     // this.handleModelCheck = this.handleModelCheck.bind(this);
@@ -153,6 +161,8 @@ class WorkFlow extends React.Component {
         queryId={queryId}
         querySequence={querySeq}
         onChange={this.handleChangeSequence}
+        onExampleScanResults={this.handleExampleScanResults}
+        onExampleSequence={this.handleExampleSequence}
       />
     );
   }
@@ -172,6 +182,20 @@ class WorkFlow extends React.Component {
 
   handleTemplateCheck(data) {
     console.log("handleTemplateCheck", data);
+  }
+
+  handleExampleSequence() {
+    this.setState({
+
+    })
+  }
+
+  handleExampleScanResults() {
+    console.log("handleExampleScanResults", this);
+    this.setState({
+      activeStep: STEP_TEMPLATE,
+      templateScanResult: DummyCathScanResults,
+    });
   }
 
   handleTemplateResult(rawdata) {
@@ -211,6 +235,7 @@ class WorkFlow extends React.Component {
       query_sequence: querySequence
     };
     let content;
+
     if (!templateScanResult) {
       content = (
         <SubmitCheckResultProvider

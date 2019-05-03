@@ -39,22 +39,7 @@ class QuerySequence extends React.Component {
     };
     
     // This binding is necessary to make `this` work in the callback
-    this._handleExampleSequenceClick = this._handleExampleSequenceClick.bind(this);
     this._handleTextFieldChange = this._handleTextFieldChange.bind(this);
-  }
-
-  _handleExampleSequenceClick(e) {
-    const seq = `
->tr|A0A0Q0Y989|A0A0Q0Y989_9BACI
-MNDFHRDTWAEVDLDAIYDNVANLRRLLPDDTHIMAVVKANAYGHGDVQVARTALEAGAS
-RLAVAFLDEALALREKGIEAPILVLGASRPADAALAAQQRIALTVFRSDWLEEASALYSG
-PFPIHFHLKMDTGMGRLGVKDEEETKRIVALIERHPHFVLEGVYTHFATADEVNTDYFSY
-QYTRFLHMLEWLPSRPPLVHCANSAASLRFPDRTFNMVRFGIAMYGLAPSPGIKPLLPYP
-LKEAFSLHSRLVHVKKLQPGEKVSYGATYTAQTEEWIGTIPIGYADGWLRRLQHFHVLVD
-GQKAPIVGRICMDQCMIRLPGPLPVGTKVTLIGRQGDEVISIDDVARHLETINYEVPCTI
-SYRVPRIFFRHKRIMEVRNAIGRGESSA`.trim();
-    console.log("setting: sequence ", seq);
-    this.setSequenceFromFasta(seq);
   }
 
   setError(msg) {
@@ -115,6 +100,7 @@ SYRVPRIFFRHKRIMEVRNAIGRGESSA`.trim();
     const { classes } = this.props;
     const helperText = this.state.errorMessage ? this.state.errorMessage 
       : "Protein sequence should be in FASTA format";
+    const onExampleScanResults = this.props.onExampleScanResults; 
 
     return (
       <div className={classes.root}>
@@ -148,6 +134,9 @@ SYRVPRIFFRHKRIMEVRNAIGRGESSA`.trim();
                   <Button size="small" color="primary" onClick={this._handleExampleSequenceClick}>
                   Example Sequence
                   </Button>
+                  <Button size="small" color="primary" onClick={onExampleScanResults}>
+                  Example Results
+                  </Button>
                   <Button size="small" color="primary">
                   Learn More
                   </Button>
@@ -162,6 +151,7 @@ SYRVPRIFFRHKRIMEVRNAIGRGESSA`.trim();
 QuerySequence.propTypes = {
   classes: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
+  onExampleScanResults: PropTypes.func,
   queryId: PropTypes.string,
   querySequence: PropTypes.string,
 };
