@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
+import logging.config  # pylint: disable=C0413,C0411
 import os
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
@@ -30,14 +31,16 @@ for secret_dir in [BASE_DIR, '/etc']:
         continue
 
 if not SECRET_KEY:
-    raise FileNotFoundError('failed to get SECRET_KEY from local file, tried: {}'.format(", ".join(secret_files)))
+    raise FileNotFoundError(
+        'failed to get SECRET_KEY from local file, tried: {}'.format(", ".join(secret_files)))
 
 del secret_files
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = [".cathdb.info", "localhost", "0.0.0.0"]
+ALLOWED_HOSTS = [".cathdb.info", "localhost",
+                 "127.0.0.1", "127.0.0.1:8000", "0.0.0.0"]
 
 # SENTRY (logging)
 
@@ -83,7 +86,9 @@ ROOT_URLCONF = 'cathapi.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'templates'),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -100,6 +105,8 @@ WSGI_APPLICATION = 'cathapi.wsgi.application'
 
 CORS_ORIGIN_WHITELIST = (
     'localhost:3000',
+    'localhost:8000',
+    '127.0.0.1:8000',
     'cathdb.info',
     'expasy.org',
 )
@@ -166,7 +173,7 @@ REST_FRAMEWORK = {
         #       model permissions
         # 'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
-        ),
+    ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication', ),
 }
@@ -178,7 +185,6 @@ REST_FRAMEWORK = {
 
 LOGGING_CONFIG = None
 LOG_LEVEL = os.environ.get('CATHAPI_LOGLEVEL', 'info').upper()
-import logging.config # pylint: disable=C0413,C0411
 logging.config.dictConfig({
     'version': 1,
     'disable_existing_loggers': False,
