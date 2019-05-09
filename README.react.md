@@ -11,6 +11,7 @@ brew install npm
 ```
 
 ```
+cd frontend
 npm init -y
 npm i webpack webpack-cli --save-dev
 ```
