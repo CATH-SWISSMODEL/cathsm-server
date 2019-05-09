@@ -1,0 +1,39 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+<h1 class="cover-heading">Protein Modelling Workflow</h1>
+<p class="lead">
+  <ul>
+    <li>
+      The CATH-SM workflow allows users to generate 3D models from protein sequences.
+    </li>
+    <li>
+      This work is a collaboration between CATH (protein structure classification)
+      and SWISS-MODEL (protein structural modelling) as part of an ELIXIR Implementation Study.
+    </li>
+  </ul>
+</p>
+<p class="lead text-center">
+  <a href="#" class="btn btn-lg btn-primary">Try It</a>
+  <a href="#" class="btn btn-lg btn-secondary">Learn more</a>
+</p>
+
+<hr>
+
+<section>
+  <h2>About</h2>
+  <p class="">
+    This workflow uses CATH to search a protein sequence against Functional Families (FunFams) to
+    try and identify high quality template structures. These template structures are then submitting
+    to SWISSMODEL in order to generate the full 3D models.
+    <ul>
+      <li>Select Template
+        <p>Search query protein sequence against CATH FunFams</p>
+      </li>
+      <li>Model Template
+        <p>Generate 3D Model</p>
+      </li>
+    </ul>
+  </p>
+</section>
+{% endblock %}
