@@ -21,11 +21,18 @@ DEFAULT_BLAST_MAX_EVALUE = 0.001
 class SelectBlastRep(object):
     def __init__(self, *, align: Align, ref_seq: Sequence,
                  only_cath_domains=True, max_evalue=DEFAULT_BLAST_MAX_EVALUE):
+
+        self.align = align
+        self.ref_seq = ref_seq
+        self.only_cath_domains = only_cath_domains
+        self.max_evalue = max_evalue
+        self._rep_seq = None
+
+    def get_seq_rep(self):
+
         workdir = tempfile.TemporaryDirectory(prefix='selectblastrep')
         original_dir = os.getcwd()
         os.chdir(workdir.name)
-
-        best_seq = None
 
         try:
             queryfile = tempfile.NamedTemporaryFile(
@@ -38,10 +45,10 @@ class SelectBlastRep(object):
             def seqs_to_fasta_nogaps(seqs):
                 return ''.join(['>' + seq.id + '\n' + seq.seq_no_gaps + '\n' for seq in seqs])
 
-            queryfile.write(seqs_to_fasta_nogaps([ref_seq]))
+            queryfile.write(seqs_to_fasta_nogaps([self.ref_seq]))
             queryfile.close()
 
-            dbfile.write(seqs_to_fasta_nogaps(align.seqs))
+            dbfile.write(seqs_to_fasta_nogaps(self.align.seqs))
             dbfile.close()
 
             makeblastdb_cmds = (MAKEBLASTDB_EXE, '-in',
@@ -50,7 +57,7 @@ class SelectBlastRep(object):
             subprocess.run(makeblastdb_cmds, check=True)
 
             blast_cmds = (BLASTP_EXE, '-query', queryfile.name, '-db', dbfile.name,
-                          '-evalue', '{:f}'.format(max_evalue), '-outfmt', '7', '-out', outfile.name)
+                          '-evalue', '{:f}'.format(self.max_evalue), '-outfmt', '7', '-out', outfile.name)
 
             LOG.info("Running blast: %s", " ".join(blast_cmds))
             subprocess.run(blast_cmds, check=True)
@@ -68,7 +75,7 @@ class SelectBlastRep(object):
                     (query, subject, identity, alignment_length, mismatches, gap_opens, query_start,
                      query_end, match_start, match_end, evalue, bit_score) = line.split()
 
-                    subject_seq = Sequence(subject, '')
+                    subject_seq = align.find_seq_by_id(subject)
                     if only_cath_domains and not subject_seq.is_cath_domain:
                         continue
 
@@ -88,8 +95,9 @@ class SelectBlastRep(object):
             os.chdir(original_dir)
             workdir.cleanup()
 
-        self._rep_id = best_seq.id
+        self._rep_seq = subject_seq
+        return self._rep_seq
 
     @property
-    def rep_id(self):
-        return self._rep_id
+    def rep_seq(self):
+        return self._rep_seq

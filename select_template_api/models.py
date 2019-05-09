@@ -14,6 +14,7 @@ from cathpy.models import Scan, ScanHit, Segment
 from cathpy.align import Align, Sequence
 
 from .errors import NoStructureDomainsError
+from .select_template import SelectBlastRep
 
 LOG = logging.getLogger(__name__)
 
@@ -101,15 +102,18 @@ class SelectTemplateHit(models.Model):
             raise NoStructureDomainsError(
                 "no CATH domains found in FunFam alignment: {}".format(funfam_id))
 
-        best_domain_seq = SelectBlastRep(align=ff_aln, ref_seq=hit_seq).run()
+        select_rep = SelectBlastRep(align=ff_aln, ref_seq=hit_seq)
+        req_seq = select_rep.rep_seq
 
-        pdb_id = '1XXX'
-        auth_asym_id = 'A'
-        template_sequence = 'CHANGEME'
-        template_seqres_offset = 24
+        domain_id = req_seq.accession
+
+        pdb_id = domain_id[:4]
+        auth_asym_id = domain_id[4:5]
+        template_sequence = req_seq.seq
+        template_seqres_offset = req_seq.segs[0].start
 
         hit = SelectTemplateHit(
-            task_uuid=self.uuid,
+            task_uuid=task_uuid,
             query_id=query_id,
             query_sequence=query_sequence,
             funfam_id=funfam_id,
@@ -228,6 +232,16 @@ class SelectTemplateTask(models.Model):
         if len(scan.results) != 1:
             raise Exception("expected exactly 1 result in scan, got {} (scan:{})".format(
                 len(scan.results), scan))
+
         result = scan.results[0]
+        hits = []
         for scan_hit in result.hits:
-            hit = SelectTemplateHit.create_from_scan_hit(scan_hit)
+            hit = SelectTemplateHit.create_from_scan_hit(
+                scan_hit=scan_hit,
+                cath_version=cath_version,
+                task_uuid=self.uuid,
+                task_query_id=self.query_id,
+                task_query_sequence=self.query_sequence)
+            hits.extend([hit])
+
+        return hits
