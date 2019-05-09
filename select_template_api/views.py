@@ -8,9 +8,9 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 
 from .serializers import (SelectTemplateQuerySerializer, SelectTemplateStatusSerializer,
-                          SelectTemplateResultsSerializer)
+                          SelectTemplateResultsSerializer, SelectTemplateHitSerializer)
 
-from .models import SelectTemplateTask
+from .models import SelectTemplateTask, SelectTemplateHit
 from .models import STATUS_ERROR
 
 LOG = logging.getLogger(__name__)
@@ -22,6 +22,21 @@ class TemplateTaskView(object):
     queryset = SelectTemplateTask.objects.all()
     serializer_class = SelectTemplateQuerySerializer
     lookup_field = 'uuid'
+
+
+class SelectTemplateTaskHitsView(generics.RetrieveAPIView):
+    """Generic view for TemplateTask."""
+
+    queryset = SelectTemplateTask.objects.all()
+    serializer_class = SelectTemplateHitSerializer
+    lookup_field = 'uuid'
+
+    def hits(self, request):
+
+        # Note the use of `get_queryset()` instead of `self.queryset`
+        queryset = self.get_queryset()
+        serializer = SelectTemplateHitSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class SelectTemplateTaskCreateView(TemplateTaskView, generics.CreateAPIView):
