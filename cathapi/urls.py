@@ -19,12 +19,15 @@ from rest_framework import permissions, routers
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from drf_yasg.generators import OpenAPISchemaGenerator
+from . import views
+
 
 class CustomOpenAPISchemaGenerator(OpenAPISchemaGenerator):
     def get_schema(self, *args, **kwargs):
         schema = super().get_schema(*args, **kwargs)
-        schema.basePath = '/api' # API prefix
+        schema.basePath = '/api'  # API prefix
         return schema
+
 
 SelectTemplateApi = get_schema_view(
     openapi.Info(
@@ -48,10 +51,13 @@ ROUTER = routers.DefaultRouter()
 urlpatterns = [
     url(r'^swagger(?P<format>\.json|\.yaml)$',
         SelectTemplateApi.without_ui(cache_timeout=None), name='schema-json'),
-    url(r'^swagger/$', SelectTemplateApi.with_ui('swagger', cache_timeout=None), name='schema-swagger-ui'),
-    url(r'^redoc/$', SelectTemplateApi.with_ui('redoc', cache_timeout=None), name='schema-redoc'),
+    url(r'^swagger/$', SelectTemplateApi.with_ui('swagger',
+                                                 cache_timeout=None), name='schema-swagger-ui'),
+    url(r'^redoc/$', SelectTemplateApi.with_ui('redoc',
+                                               cache_timeout=None), name='schema-redoc'),
     url(r'^admin/', admin.site.urls),
     url(r'^api/', include('select_template_api.urls')),
-#    url(r'^api/', include(ROUTER.urls)),
+    #    url(r'^api/', include(ROUTER.urls)),
     url(r'^frontend/', include('frontend.urls')),
+    url(r'^', views.IndexView.as_view(), name='index')
 ]
