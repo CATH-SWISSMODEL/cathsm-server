@@ -18,3 +18,4 @@ swagger_spec_validator
 django-cors-headers
 gunicorn
 cathpy>=0.1.7
+biopython
