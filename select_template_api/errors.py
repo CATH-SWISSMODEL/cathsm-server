@@ -1,0 +1,3 @@
+
+class NoStructureDomainsError(Exception):
+    pass
