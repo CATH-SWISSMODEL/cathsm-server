@@ -5,7 +5,7 @@ from rest_framework.authtoken import views
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from .views import (SelectTemplateTaskCreateView, SelectTemplateTaskStatusView,
-                    SelectTemplateTaskResultsView)
+                    SelectTemplateTaskResultsView, SelectTemplateTaskHitsView)
 
 app_name = "select_template_api"
 
@@ -17,6 +17,8 @@ urlpatterns = {
         SelectTemplateTaskStatusView.as_view(), name="status_selecttemplate"),
     url(r'^select-template/(?P<uuid>[0-9a-f\-]{32,40})/results$',
         SelectTemplateTaskResultsView.as_view(), name="results_selecttemplate"),
+    url(r'^select-template/(?P<uuid>[0-9a-f\-]{32,40})/hits$',
+        SelectTemplateTaskHitsView.as_view(), name="hits_selecttemplate"),
 }
 
 urlpatterns = format_suffix_patterns(urlpatterns)
