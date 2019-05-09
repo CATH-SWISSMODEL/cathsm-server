@@ -1,6 +1,8 @@
 """CATH API Tests"""
 
+import gzip
 import logging
+import os
 import time
 
 from django.test import TestCase
@@ -10,9 +12,11 @@ from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
 
+from .select_template import SelectBlastRep
 from .models import SelectTemplateTask
+from .models import STATUS_QUEUED, STATUS_RUNNING, STATUS_ERROR, STATUS_SUCCESS
 
-from .models import STATUS_UNKNOWN, STATUS_QUEUED, STATUS_RUNNING, STATUS_ERROR, STATUS_SUCCESS
+from cathpy.align import Align, Sequence
 
 LOG = logging.getLogger(__name__)
 # logging.basicConfig()
@@ -20,7 +24,36 @@ LOG = logging.getLogger(__name__)
 # Create your tests here.
 
 DEFAULT_QUERY_ID = "test_query_id"
-DEFAULT_QUERY_SEQ = "MNDFHRDTWAEVDLDAIYDNVANLRRLLPDDTHIMAVVKANAYGDVQVARTALEAGASRLAVAFLDEALALREKGIEAPILVLGASRPADAALAAQQRIALTVFRSDWLEEASALYSGPFPIHFHLKMDTGMGRLGVKDEEETKRIVALIERHPHFVLEGVYTHFATADEVNTDYFSYQYTRFLHMLEWLPSRPPLVHCANSAASLRFPDRTFNMVRFGIAMYGLAPSPGIKPLLPYPLKEAFSLHSRLVHVKKLQPGEKVSYGATYTAQTEEWIGTIPIGYADGWLRRLQH"
+DEFAULT_QUERY_SEQ = """
+MNDFHRDTWAEVDLDAIYDNVANLRRLLPDDTHIMAVVKANAYGDVQVARTALEAGASRLAVAFLDEALALREKGIEA
+PILVLGASRPADAALAAQQRIALTVFRSDWLEEASALYSGPFPIHFHLKMDTGMGRLGVKDEEETKRIVALIERHPHF
+VLEGVYTHFATADEVNTDYFSYQYTRFLHMLEWLPSRPPLVHCANSAASLRFPDRTFNMVRFGIAMYGLAPSPGIKPL
+LPYPLKEAFSLHSRLVHVKKLQPGEKVSYGATYTAQTEEWIGTIPIGYADGWLRRLQH
+""".strip()
+
+
+class SelectTemplateTest(TestCase):
+
+    def setUp(self):
+        """Define the test client and other test variables."""
+
+        self.query_id = DEFAULT_QUERY_ID
+        self.query_seq = DEFAULT_QUERY_SEQ
+        self.query = Sequence(self.query_id, self.query_seq)
+
+        data_dir = os.path.join(os.path.dirname(
+            __file__), '..', 'example_data')
+
+        self.ff1_file = os.path.join(data_dir, '3.20.20.10-ff-9715.sto.gz')
+        self.ff2_file = os.path.join(data_dir, '2.40.37.10-ff-6607.sto.gz')
+
+        self.ff1_aln = Align.new_from_stockholm(self.ff1_file)
+        self.ff2_aln = Align.new_from_stockholm(self.ff2_file)
+
+    def test_select_blast_rep(self):
+
+        rep_id = SelectBlastRep(
+            align=self.ff1_aln, ref_seq=self.query).rep_id
 
 
 class ModelTestCase(TestCase):
@@ -70,6 +103,7 @@ class ViewTestCase(TestCase):
     def submit_default_task_with_auth(self):
         token = self.get_auth_token()
         self.client.credentials(HTTP_AUTHORIZATION='Token '+token)
+        LOG.info("client: %s", str(self.client.__dict__))
         response = self.client.post(
             reverse('select_template_api:create_selecttemplate'),
             self.template_task_data,
@@ -236,4 +270,4 @@ class ViewTestCase(TestCase):
     def tearDown(self):
         """Remove testing data, users, etc"""
 
-        self.testuser.delete()
+        # self.testuser.delete()
