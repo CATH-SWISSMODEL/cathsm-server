@@ -12,7 +12,7 @@ from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from .select_template import SelectBlastRep
+from .select_template import SelectBlastRep, MafftAddSequence
 from .models import SelectTemplateTask
 from .models import STATUS_QUEUED, STATUS_RUNNING, STATUS_ERROR, STATUS_SUCCESS
 
@@ -28,7 +28,8 @@ DEFAULT_QUERY_SEQ = """
 MNDFHRDTWAEVDLDAIYDNVANLRRLLPDDTHIMAVVKANAYGDVQVARTALEAGASRLAVAFLDEALALREKGIEA
 PILVLGASRPADAALAAQQRIALTVFRSDWLEEASALYSGPFPIHFHLKMDTGMGRLGVKDEEETKRIVALIERHPHF
 VLEGVYTHFATADEVNTDYFSYQYTRFLHMLEWLPSRPPLVHCANSAASLRFPDRTFNMVRFGIAMYGLAPSPGIKPL
-LPYPLKEAFSLHSRLVHVKKLQPGEKVSYGATYTAQTEEWIGTIPIGYADGWLRRLQH
+LPYPLKEAFSLHSRLVHVKKLQPGEKVSYGATYTAQTEEWIGTIPIGYADGWLRRLQHFHVLVDGQKAPIVGRICMDQ
+CMIRLPGPLPVGTKVTLIGRQGDEVISIDDVARHLETINYEVPCTISYRVPRIFFRHKRIMEVRNAIGRGESSA
 """.strip()
 
 
@@ -37,9 +38,9 @@ class SelectTemplateTest(TestCase):
     def setUp(self):
         """Define the test client and other test variables."""
 
-        self.query_id = DEFAULT_QUERY_ID
-        self.query_seq = DEFAULT_QUERY_SEQ
-        self.query = Sequence(self.query_id, self.query_seq)
+        self.query_seq = Sequence(DEFAULT_QUERY_ID, DEFAULT_QUERY_SEQ)
+        self.query_subseq = self.query_seq.apply_segments(
+            [[50, 150], [200, 250]])
 
         data_dir = os.path.join(os.path.dirname(
             __file__), '..', 'example_data')
@@ -52,8 +53,20 @@ class SelectTemplateTest(TestCase):
 
     def test_select_blast_rep(self):
 
-        rep_id = SelectBlastRep(
-            align=self.ff1_aln, ref_seq=self.query).rep_id
+        select_rep = SelectBlastRep(
+            align=self.ff1_aln, ref_seq=self.query_subseq)
+        best_hit = select_rep.get_best_blast_hit()
+        LOG.info("best_hit: %s", str(best_hit))
+        self.assertEqual(best_hit.subject, '1sftB01/14-224')
+
+    def test_align_add_sequence(self):
+        mafft = MafftAddSequence(
+            align=self.ff1_aln, sequence=self.query_subseq)
+        new_align = mafft.run()
+        merged_subseq = new_align.find_seq_by_id(self.query_subseq.id)
+        self.assertTrue(merged_subseq)
+        subset_align = new_align.subset([merged_subseq.id, '1sftB01/14-224'])
+        LOG.info("subset.after:\n%s", subset_align.to_fasta())
 
 
 class ModelTestCase(TestCase):
