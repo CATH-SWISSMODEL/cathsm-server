@@ -1,3 +1,7 @@
+"""
+Selects template structure/alignments for a given protein sequence
+"""
+
 import logging
 import os
 import subprocess
@@ -6,7 +10,8 @@ import tempfile
 #from Bio import SearchIO
 
 from cathpy.align import Align, Sequence
-from cathpy.tests import is_valid_domain_id
+
+from .errors import NoStructureDomainsError
 
 LOG = logging.getLogger(__name__)
 
@@ -20,7 +25,10 @@ DEFAULT_BLAST_MAX_EVALUE = 0.001
 
 
 def seqs_to_fasta_nogaps(seqs):
-    return ''.join(['>' + seq.id + '\n' + seq.seq_no_gaps + '\n' for seq in seqs])
+    """
+    Returns a string containing ungapped FASTA sequences
+    """
+    return ''.join(['>' + seq.uid + '\n' + seq.seq_no_gaps + '\n' for seq in seqs])
 
 
 class BlastHit(object):
@@ -28,8 +36,9 @@ class BlastHit(object):
     Stores information on a Blast Hit
     """
 
-    def __init__(self, *, query, subject, identity, alignment_length, mismatches, gap_opens, query_start,
-                 query_end, match_start, match_end, evalue, bit_score, subject_sequence=None):
+    def __init__(self, *, query, subject, identity, alignment_length,
+                 mismatches, gap_opens, query_start, query_end, match_start,
+                 match_end, evalue, bit_score, subject_sequence=None):
         self.query = query
         self.subject = subject
         self.identity = identity
@@ -46,10 +55,13 @@ class BlastHit(object):
 
     @classmethod
     def new_from_outfmt_7(cls, hit_line):
+        """
+        Creates a new instance from a BLAST format 7 results string
+        """
 
         # query acc.ver, subject acc.ver, % identity, alignment length, mismatches, gap opens, q. start, q. end, s. start, s. end, evalue, bit score
         (query, subject, identity, alignment_length, mismatches, gap_opens, query_start,
-            query_end, match_start, match_end, evalue, bit_score) = hit_line.split()
+         query_end, match_start, match_end, evalue, bit_score) = hit_line.split()
 
         return cls(
             query=query,
@@ -77,19 +89,21 @@ class BlastHit(object):
 
 
 class SelectBlastRep(object):
+    """
+    Selects the closest member of an alignment to query sequence (best BLAST)  
+    """
 
     def __init__(self, *, align: Align, ref_seq: Sequence,
-                 only_cath_domains=True, max_evalue=DEFAULT_BLAST_MAX_EVALUE):
+                 max_evalue=DEFAULT_BLAST_MAX_EVALUE):
 
         self.align = align
         self.ref_seq = ref_seq
-        self.only_cath_domains = only_cath_domains
         self.max_evalue = max_evalue
         self._blast_hits = []
 
     def run(self):
         """
-        Returns a :class:`cathpy.Sequence` corresponding to the 'best' alignment representative 
+        Returns a :class:`cathpy.Sequence` corresponding to the 'best' alignment rep
         """
 
         workdir = tempfile.TemporaryDirectory(prefix='selectblastrep')
@@ -162,18 +176,54 @@ class SelectBlastRep(object):
             self.run()
         return self._blast_hits
 
-    def get_best_blast_hit(self):
+    def get_best_blast_hit(self, *, sort_by=None, only_cath_domains=True, reverse=True):
+        """
+        Returns the 'best' blast hit
+
+        Args:
+            sort_by (function): function to use for sorting (default: `lambda h: h.bit_score`)
+            only_cath_domains (bool): only consider CATH domains (default: True)
+            reverse (bool): reverse the order of the sort hits
+
+        Returns:
+            blast_hit (:class:`BlastHit`): best blast hit
+        """
+
+        def sort_by_bitscore(hit):
+            return hit.bit_score
+
+        def is_seq_valid_cath_domain(seq_id):
+            hdr_info = Sequence.split_hdr(seq_id)
+            return bool(hdr_info['id_type'] == 'domain')
+
+        if not sort_by:
+            sort_by = sort_by_bitscore
+
         sorted_hits = sorted(self.blast_hits,
-                             key=lambda h: h.bit_score, reverse=True)
+                             key=sort_by, reverse=reverse)
+
+        if only_cath_domains:
+            sorted_hits = [
+                h for h in sorted_hits if is_seq_valid_cath_domain(h.subject)]
+            if not sorted_hits:
+                raise NoStructureDomainsError(
+                    'failed to find any members of the alignment with CATH domain ids')
+
         best_hit = sorted_hits[0]
         return best_hit
 
-    def get_best_blast_sequence(self):
-        best_hit = self.get_best_blast_hit()
+    def get_best_blast_sequence(self, *, only_cath_domains=True):
+        """
+        Returns the best blast sequence
+        """
+        best_hit = self.get_best_blast_hit(only_cath_domains=only_cath_domains)
         return best_hit.subject_sequence
 
 
 class MafftAddSequence(object):
+    """
+    Uses MAFFT to add a sequence to an existing alignment
+    """
 
     def __init__(self, *, align, sequence, mafft_exe=DEFAULT_MAFFT_EXE):
         self.align = align
@@ -209,7 +259,7 @@ class MafftAddSequence(object):
         new_aln = self.align.copy()
 
         # set the length of the alignment (avoids complaints when adding sequences)
-        new_seq = merged_aln.find_seq_by_id(self.sequence.id)
+        new_seq = merged_aln.find_seq_by_id(self.sequence.uid)
         new_aln.aln_positions = len(new_seq)
 
         # add reference sequence to the start of the alignment
@@ -218,15 +268,15 @@ class MafftAddSequence(object):
         # update the newly aligned sequences for the rest of the entries
         for seq in new_aln.sequences:
             try:
-                merged_seq = merged_aln.find_seq_by_id(seq.id)
+                merged_seq = merged_aln.find_seq_by_id(seq.uid)
             except:
                 raise Exception("failed to find sequence id {} in merged alignment".format(
-                    seq.id))
+                    seq.uid))
 
             LOG.debug("Sub merged sequence from:%s: %s",
-                      seq.id, seq.seq)
+                      seq.uid, seq.seq)
             LOG.debug("                      to:%s: %s",
-                      merged_seq.id, merged_seq.seq)
+                      merged_seq.uid, merged_seq.seq)
             seq.set_sequence(merged_seq.seq)
 
         return new_aln
