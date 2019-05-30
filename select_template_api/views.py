@@ -7,31 +7,59 @@ from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.response import Response
 
-from .serializers import (SelectTemplateQuerySerializer, SelectTemplateStatusSerializer,
-                          SelectTemplateResultsSerializer, SelectTemplateHitSerializer)
+from .serializers import (SelectTemplateQuerySerializer,
+                          SelectTemplateStatusSerializer,
+                          SelectTemplateResultSerializer,
+                          SelectTemplateHitSerializer,
+                          SelectTemplateAlignmentSerializer)
 
-from .models import SelectTemplateTask, SelectTemplateHit
+from .models import SelectTemplateTask, SelectTemplateHit, SelectTemplateAlignment
 from .models import STATUS_ERROR
 
 LOG = logging.getLogger(__name__)
 
 
-class TemplateTaskView(object):
-    """Generic view for TemplateTask."""
+class SelectTemplateAlignmentsView(generics.RetrieveAPIView):
+    """Generic view for non-resolved hits from template scan."""
 
-    queryset = SelectTemplateTask.objects.all()
-    serializer_class = SelectTemplateQuerySerializer
+    queryset = SelectTemplateAlignment.objects.all()
+    serializer_class = SelectTemplateHitSerializer
     lookup_field = 'uuid'
 
+    def get_entries_for_hit(self, hit_uuid):
+        """
+        Gets the alignment entries for a given hit
+        """
+        # Note the use of `get_queryset()` instead of `self.queryset`
+        queryset = self.get_queryset().filter(hit_uuid=hit_uuid)
+        serializer = SelectTemplateAlignmentSerializer(queryset, many=True)
+        return Response(serializer.data)
 
-class SelectTemplateTaskHitsView(generics.RetrieveAPIView):
-    """Generic view for TemplateTask."""
 
-    queryset = SelectTemplateTask.objects.all()
+class SelectTemplateHitsView(generics.RetrieveAPIView):
+    """Generic view for non-resolved hits from template scan."""
+
+    queryset = SelectTemplateHit.objects.filter(is_resolved_hit=False)
     serializer_class = SelectTemplateHitSerializer
     lookup_field = 'uuid'
 
     def hits(self, request):
+        """Returns serialized hits"""
+        # Note the use of `get_queryset()` instead of `self.queryset`
+        queryset = self.get_queryset()
+        serializer = SelectTemplateHitSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class SelectTemplateResolvedHitsView(generics.RetrieveAPIView):
+    """Generic view for resolved hits from template scan."""
+
+    queryset = SelectTemplateHit.objects.filter(is_resolved_hit=True)
+    serializer_class = SelectTemplateHitSerializer
+    lookup_field = 'uuid'
+
+    def hits(self, request):
+        """Returns serialized hits"""
 
         # Note the use of `get_queryset()` instead of `self.queryset`
         queryset = self.get_queryset()
@@ -39,7 +67,15 @@ class SelectTemplateTaskHitsView(generics.RetrieveAPIView):
         return Response(serializer.data)
 
 
-class SelectTemplateTaskCreateView(TemplateTaskView, generics.CreateAPIView):
+class TemplateTasksView(object):
+    """Generic view for TemplateTask."""
+
+    queryset = SelectTemplateTask.objects.all()
+    serializer_class = SelectTemplateQuerySerializer
+    lookup_field = 'uuid'
+
+
+class SelectTemplateTasksCreateView(TemplateTasksView, generics.CreateAPIView):
     """This class defines the create behavior of our rest api."""
 
     # https://stackoverflow.com/a/4581997/821642
@@ -78,16 +114,15 @@ class SelectTemplateTaskCreateView(TemplateTaskView, generics.CreateAPIView):
             return Response(serializer.errors, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class SelectTemplateTaskResultsView(TemplateTaskView, generics.RetrieveAPIView):
+class SelectTemplateTasksResultView(TemplateTasksView, generics.RetrieveAPIView):
     """This class handles the http GET requests."""
 
-    serializer_class = SelectTemplateResultsSerializer
+    serializer_class = SelectTemplateResultSerializer
 
 
-class SelectTemplateTaskStatusView(TemplateTaskView, generics.RetrieveDestroyAPIView):
+class SelectTemplateTasksStatusView(TemplateTasksView, generics.RetrieveDestroyAPIView):
     """This class handles the http GET and DELETE requests."""
 
-    queryset = SelectTemplateTask.objects.all()
     serializer_class = SelectTemplateStatusSerializer
 
     # overriding this so we can update the remote task whenever we
