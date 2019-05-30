@@ -57,7 +57,6 @@ urlpatterns = [
                                                cache_timeout=None), name='schema-redoc'),
     url(r'^admin/', admin.site.urls),
     url(r'^api/', include('select_template_api.urls')),
-    #    url(r'^api/', include(ROUTER.urls)),
     url(r'^frontend/', include('frontend.urls')),
-    url(r'^', views.IndexView.as_view(), name='index')
+    url(r'^$', views.IndexView.as_view(), name='index')
 ]
