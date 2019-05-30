@@ -1,4 +1,12 @@
-"""CATH API Models"""
+"""
+CATH API Models
+
+::
+    SelectTemplateTask [query_sequence]
+        -> SelectTemplateHit [query_region -> match_funfam]
+            -> SelectTemplateAlignment [match_funfam -> structural_rep]
+
+"""
 
 import logging
 import json
@@ -13,8 +21,8 @@ from cathpy.funfhmmer import Client
 from cathpy.models import Scan, ScanHit, Segment
 from cathpy.align import Align, Sequence
 
-from .errors import NoStructureDomainsError
-from .select_template import SelectBlastRep
+from .errors import NoStructureDomainsError, DiscontinuousDomainError
+from .select_template import SelectBlastRep, MafftAddSequence
 
 LOG = logging.getLogger(__name__)
 
@@ -27,23 +35,25 @@ STATUS_UNKNOWN = "unknown"
 STATUS_CHOICES = ((st, st) for st in (
     STATUS_UNKNOWN, STATUS_QUEUED, STATUS_RUNNING, STATUS_ERROR, STATUS_SUCCESS))
 
+ALIGN_METHOD_MAFFT = "mafft"
+ALIGN_METHOD_HHSEARCH = "hhsearch"
+ALIGN_METHOD_CHOICES = ((st, st) for st in (
+    ALIGN_METHOD_MAFFT, ))
+
 # Create your models here.
 
 
-class SelectTemplateHit(models.Model):
-    """This class represents a particular hit from a given task."""
+class SelectTemplateAlignment(models.Model):
+    """
+    Represents a query-template alignment from a `SelectTemplate` task
+    """
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    task_uuid = models.UUIDField(editable=False, blank=False)
+    hit_uuid = models.UUIDField(editable=False, blank=False)
+
     date_created = models.DateTimeField(auto_now_add=True)
-
-    query_id = models.CharField(max_length=50, blank=False, unique=False)
-    query_sequence = models.CharField(
-        max_length=2000, blank=False, unique=False)
-    query_range = models.CharField(max_length=100, blank=False, unique=False)
-
-    funfam_id = models.CharField(max_length=100, blank=False, unique=False)
-    funfam_name = models.CharField(max_length=500, blank=False, unique=False)
+    align_method = models.CharField(
+        max_length=20, choices=ALIGN_METHOD_CHOICES, default=ALIGN_METHOD_MAFFT)
 
     pdb_id = models.CharField(max_length=4, blank=False, unique=False)
     auth_asym_id = models.CharField(max_length=4, blank=False, unique=False)
@@ -51,6 +61,32 @@ class SelectTemplateHit(models.Model):
         max_length=2000, blank=False, unique=False)
     template_seqres_offset = models.IntegerField(
         default=0, unique=False)
+
+
+class SelectTemplateHit(models.Model):
+    """
+    Represents a scan hit from a `SelectTemplate` task.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    task_uuid = models.UUIDField(editable=False, blank=False)
+    query_range = models.CharField(max_length=100, blank=False, unique=False)
+    query_range_sequence = models.CharField(
+        max_length=5000, blank=False, unique=False)
+    ff_id = models.CharField(max_length=100, blank=False, unique=False)
+    ff_name = models.CharField(max_length=500, blank=False, unique=False)
+    is_resolved_hit = models.BooleanField(blank=False, default=False)
+
+    ff_cath_domain_count = models.BooleanField(null=True)
+    ff_uniq_ec_count = models.IntegerField(null=True)
+    ff_uniq_go_count = models.IntegerField(null=True)
+    ff_seq_count = models.IntegerField(null=True)
+    ff_dops_score = models.IntegerField(null=True)
+
+    evalue = models.FloatField(null=True)
+    bitscore = models.FloatField(null=True)
 
     @classmethod
     def get_funfam_alignment(cls, *, funfam_id, cath_version):
@@ -77,24 +113,59 @@ class SelectTemplateHit(models.Model):
         return aln
 
     @classmethod
-    def create_from_scan_hit(cls, *, scan_hit, cath_version, task_uuid, task_query_id, task_query_sequence):
+    def create_from_scan_hit(cls, *, scan_hit, cath_version, task_uuid, is_resolved_hit):
+        """
+        Creates a new model instance from a :class:`cathpy.model.ScanHit`
+
+        Args:
+            scan_hit (:class:`cathpy.model.ScanHit`): hit from sequence scan
+            cath_version (str): CATH version
+            task_uuid (str): unique id of parent task
+
+        Returns:
+            hit (:class:`SelectTemplateHit`): select template hit model
+        """
 
         assert isinstance(scan_hit, ScanHit)
 
-        task_seq = Sequence(task_query_id, task_query_sequence)
+        funfam_id = scan_hit.match_name
+        funfam_name = scan_hit.match_description
+
+        if len(scan_hit.hsps) > 1:
+            raise DiscontinuousDomainError("""
+                Hit '{}' has more than one ({}) HSPs, which means it is probably a 
+                discontinuous domain (this pipeline is not currently able to process 
+                discontinuous domains).
+                """.format(scan_hit.match_name, len(scan_hit.hsps)))
+
+        scan_hsp = scan_hit.hsps[0]
+        hit_evalue = scan_hsp.evalue
+        hit_bitscore = scan_hsp.score
+
+        task = SelectTemplateTask.objects.get(task_uuid)
+        if not task:
+            raise Exception(
+                'failed to find task with task_uuid="{}"'.format(task_uuid))
+
+        task_seq = Sequence(task.query_id, task.query_sequence)
 
         query_segs = [Segment(hsp.query_start, hsp.query_end)
                       for hsp in scan_hit.hsps]
 
-        hit_seq = task_seq.apply_segments(query_segs)
-
-        query_id = hit_seq.id
-        query_sequence = hit_seq.seq
-        funfam_id = scan_hit.match_name
-        funfam_name = scan_hit.match_description
+        query_range_sequence = task_seq.apply_segments(query_segs)
 
         ff_aln = cls.get_funfam_alignment(
             funfam_id=funfam_id, cath_version=cath_version)
+
+        ff_aln_meta = ff_aln.get_meta_summary()
+
+        ff_uniq_ec_count = len(
+            ff_aln_meta.ec_term_counts) if ff_aln_meta.ec_term_counts else 0
+        ff_uniq_go_count = len(
+            ff_aln_meta.go_term_counts) if ff_aln_meta.go_term_counts else 0
+        ff_cath_domain_count = ff_aln_meta.cath_domain_count
+        ff_seq_count = ff_aln_meta.seq_count
+        ff_dops_score = ff_aln_meta.dops_score
 
         dom_seqs = [seq for seq in ff_aln.sequences if seq.is_cath_domain]
 
@@ -102,33 +173,60 @@ class SelectTemplateHit(models.Model):
             raise NoStructureDomainsError(
                 "no CATH domains found in FunFam alignment: {}".format(funfam_id))
 
-        select_rep = SelectBlastRep(align=ff_aln, ref_seq=hit_seq)
-        req_seq = select_rep.rep_seq
+        select_rep = SelectBlastRep(align=ff_aln, ref_seq=query_range_sequence)
+        best_hit = select_rep.get_best_blast_hit(only_cath_domains=True)
 
-        domain_id = req_seq.accession
+        add_sequence = MafftAddSequence(
+            align=ff_aln, sequence=query_range_sequence)
+
+        aln_with_query = add_sequence.run()
+        aln_with_query = aln_with_query.subset(
+            [task_seq.uid, best_hit.subject]).remove_alignment_gaps()
+
+        target_sequence = aln_with_query.find_seq_by_id(task_seq.uid)
+        template_sequence = aln_with_query.find_seq_by_id(best_hit.subject)
+        template_seqres_offset = template_sequence.segs[0].start
+
+        domain_id = best_hit.subject
 
         pdb_id = domain_id[:4]
         auth_asym_id = domain_id[4:5]
-        template_sequence = req_seq.seq
-        template_seqres_offset = req_seq.segs[0].start
 
-        hit = SelectTemplateHit(
+        LOG.info('Creating entry in SelectTemplateHit')
+        select_template_hit = SelectTemplateHit(
             task_uuid=task_uuid,
-            query_id=query_id,
-            query_sequence=query_sequence,
-            funfam_id=funfam_id,
-            funfam_name=funfam_name,
-            pdb_id=pdb_id,
-            auth_asym_id=auth_asym_id,
+            query_range=query_range_sequence.seginfo,
+            query_range_sequence=query_range_sequence.seq,
+            ff_id=funfam_id,
+            ff_name=funfam_name,
+            is_resolved_hit=is_resolved_hit,
+            ff_cath_domain_count=ff_cath_domain_count,
+            ff_seq_count=ff_seq_count,
+            ff_uniq_ec_count=ff_uniq_ec_count,
+            ff_uniq_go_count=ff_uniq_go_count,
+            ff_dops_score=ff_dops_score,
+            evalue=hit_evalue,
+            bitscore=hit_bitscore,
+        )
+        select_template_hit.save()
+
+        LOG.info('Creating entry in SelectTemplateAlignment')
+        template_alignment = SelectTemplateAlignment(
+            hit_uuid=select_template_hit.uuid,
+            target_sequence=target_sequence,
             template_sequence=template_sequence,
             template_seqres_offset=template_seqres_offset,
+            pdb_id=pdb_id,
+            auth_asym_id=auth_asym_id,
         )
+        template_alignment.save()
 
-        return hit
+        return select_template_hit
 
 
 class SelectTemplateTask(models.Model):
-    """This class represents the task model."""
+
+    """This class represents an overall select template task."""
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
@@ -223,6 +321,9 @@ class SelectTemplateTask(models.Model):
         self.save()
 
     def get_resolved_hits(self):
+        """
+        Returns :class:`SelectTemplateHit` entries for the resolved funfam scan
+        """
 
         results_data = json.loads(self.results_json)
         cath_version = results_data['cath_version']
@@ -240,8 +341,7 @@ class SelectTemplateTask(models.Model):
                 scan_hit=scan_hit,
                 cath_version=cath_version,
                 task_uuid=self.uuid,
-                task_query_id=self.query_id,
-                task_query_sequence=self.query_sequence)
+                is_resolved_hit=True)
             hits.extend([hit])
 
         return hits
