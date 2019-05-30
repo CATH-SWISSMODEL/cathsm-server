@@ -4,7 +4,7 @@ import logging
 
 from rest_framework import serializers
 
-from .models import SelectTemplateTask, SelectTemplateHit
+from .models import SelectTemplateTask, SelectTemplateHit, SelectTemplateAlignment
 
 LOG = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class SelectTemplateStatusSerializer(serializers.ModelSerializer):
                             'date_created', 'date_modified',)
 
 
-class SelectTemplateResultsSerializer(serializers.ModelSerializer):
+class SelectTemplateResultSerializer(serializers.ModelSerializer):
     """Serializer to map the Model instance into JSON format"""
 
     class Meta:
@@ -53,11 +53,25 @@ class SelectTemplateResultsSerializer(serializers.ModelSerializer):
 
 
 class SelectTemplateHitSerializer(serializers.ModelSerializer):
-    """Serializer to map the Model instance into JSON format"""
+    """Serializer to map the `SelectTemplateHit` model instance into JSON format"""
 
     class Meta:
         """Meta class to map serializer's fields with the model fields."""
         model = SelectTemplateHit
-        fields = ('uuid', 'task_uuid', 'date_created', 'funfam_id', 'funfam_name', 'pdb_id',
+        fields = ('uuid', 'task_uuid', 'date_created', 'query_range', 'query_range_sequence',
+                  'ff_id', 'ff_name', 'is_resolved_hit',
+                  'ff_cath_domain_count', 'ff_uniq_ec_count', 'ff_uniq_go_count',
+                  'ff_seq_count', 'ff_dops_score',
+                  'evalue', 'bitscore', )
+        read_only_fields = fields
+
+
+class SelectTemplateAlignmentSerializer(serializers.ModelSerializer):
+    """Serializer to map the `SelectTemplateAlignment` model instance into JSON format"""
+
+    class Meta:
+        """Meta class to map serializer's fields with the model fields."""
+        model = SelectTemplateAlignment
+        fields = ('uuid', 'hit_uuid', 'date_created', 'align_method', 'pdb_id',
                   'auth_asym_id', 'template_sequence', 'template_seqres_offset')
         read_only_fields = fields
