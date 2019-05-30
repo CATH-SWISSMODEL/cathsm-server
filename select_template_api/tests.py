@@ -12,11 +12,11 @@ from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from .select_template import SelectBlastRep, MafftAddSequence
+from cathpy.align import Align, Sequence
+
 from .models import SelectTemplateTask
 from .models import STATUS_QUEUED, STATUS_RUNNING, STATUS_ERROR, STATUS_SUCCESS
-
-from cathpy.align import Align, Sequence
+from .select_template import SelectBlastRep, MafftAddSequence
 
 LOG = logging.getLogger(__name__)
 # logging.basicConfig()
@@ -63,9 +63,9 @@ class SelectTemplateTest(TestCase):
         mafft = MafftAddSequence(
             align=self.ff1_aln, sequence=self.query_subseq)
         new_align = mafft.run()
-        merged_subseq = new_align.find_seq_by_id(self.query_subseq.id)
+        merged_subseq = new_align.find_seq_by_id(self.query_subseq.uid)
         self.assertTrue(merged_subseq)
-        subset_align = new_align.subset([merged_subseq.id, '1sftB01/14-224'])
+        subset_align = new_align.subset([merged_subseq.uid, '1sftB01/14-224'])
         LOG.info("subset.after:\n%s", subset_align.to_fasta())
 
 
@@ -118,7 +118,7 @@ class ViewTestCase(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Token '+token)
         LOG.info("client: %s", str(self.client.__dict__))
         response = self.client.post(
-            reverse('select_template_api:create_selecttemplate'),
+            reverse('select_template_api:select_template_create'),
             self.template_task_data,
             format="json")
 
@@ -129,7 +129,7 @@ class ViewTestCase(TestCase):
         self.assertTrue(task_uuid)
 
         response = self.client.get(
-            reverse('select_template_api:status_selecttemplate',
+            reverse('select_template_api:select_template_status',
                     kwargs={'uuid': task_uuid}),
             format="json")
 
@@ -140,7 +140,7 @@ class ViewTestCase(TestCase):
         self.assertTrue(task_uuid)
 
         response = self.client.get(
-            reverse('select_template_api:results_selecttemplate',
+            reverse('select_template_api:select_template_results',
                     kwargs={'uuid': task_uuid}),
             format="json")
 
@@ -153,10 +153,10 @@ class ViewTestCase(TestCase):
         """Test the api cannot create tasks without authentication"""
 
         self.assertEqual(
-            reverse('select_template_api:create_selecttemplate'), '/api/select-template/')
+            reverse('select_template_api:select_template_create'), '/api/select-template/')
 
         response = self.client.post(
-            reverse('select_template_api:create_selecttemplate'),
+            reverse('select_template_api:select_template_create'),
             self.template_task_data,
             format="json"
         )
@@ -219,7 +219,7 @@ class ViewTestCase(TestCase):
 
         LOG.info("get.response.json: %s", response.json())
 
-        self.assertContains(response, task.id)
+        self.assertContains(response, task.uuid)
 
         # remove test task from database
         task.delete()
@@ -234,7 +234,7 @@ class ViewTestCase(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Token '+token)
 
         response = self.client.delete(
-            reverse('select_template_api:status_selecttemplate',
+            reverse('select_template_api:select_template_status',
                     kwargs={'uuid': task.uuid}),
             format='json',
             follow=True)
