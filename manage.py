@@ -3,7 +3,13 @@ import os
 import sys
 
 if __name__ == "__main__":
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "cathapi.settings.dev")
+    if 'CATHAPI_DEBUG' in os.environ:
+        django_settings = 'cathapi.settings.dev'
+    else:
+        django_settings = 'cathapi.settings.prod'
+
+    print("Running Django server with: {}".format(django_settings))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", django_settings)
     try:
         from django.core.management import execute_from_command_line
     except ImportError:
