@@ -21,7 +21,7 @@ from cathpy.funfhmmer import Client
 from cathpy.models import Scan, ScanHit, Segment
 from cathpy.align import Align, Sequence
 
-from .errors import NoStructureDomainsError, DiscontinuousDomainError
+from . import errors as err
 from .select_template import SelectBlastRep, MafftAddSequence
 
 LOG = logging.getLogger(__name__)
@@ -34,6 +34,8 @@ STATUS_SUCCESS = "success"
 STATUS_UNKNOWN = "unknown"
 STATUS_CHOICES = ((st, st) for st in (
     STATUS_UNKNOWN, STATUS_QUEUED, STATUS_RUNNING, STATUS_ERROR, STATUS_SUCCESS))
+
+STATUS_TYPES_COMPLETED = [STATUS_SUCCESS, STATUS_ERROR]
 
 ALIGN_METHOD_MAFFT = "mafft"
 ALIGN_METHOD_HHSEARCH = "hhsearch"
@@ -93,7 +95,7 @@ class SelectTemplateHit(models.Model):
         """
         Retrieves the FunFam alignment
 
-        TODO: 
+        TODO:
             move this functionality to :class:`cathpy`
         """
 
@@ -115,7 +117,13 @@ class SelectTemplateHit(models.Model):
     @classmethod
     def create_from_scan_hit(cls, *, scan_hit, cath_version, task_uuid, is_resolved_hit):
         """
-        Creates a new model instance from a :class:`cathpy.model.ScanHit`
+        Creates a new :class:`SelectTemplateHit` from a :class:`cathpy.model.ScanHit`
+
+        This will fetch the matching FunFam alignment, align the matching
+        region of query sequence to this alignment (`MAFFT`). Then it will 
+        use `BLAST` to find the closest structural sequence within the FunFam,
+        isolate the pairwise alignment of the 'best' BLAST hit and save it as
+        :class:`SelectTemplateAlignment`.
 
         Args:
             scan_hit (:class:`cathpy.model.ScanHit`): hit from sequence scan
@@ -132,7 +140,7 @@ class SelectTemplateHit(models.Model):
         funfam_name = scan_hit.match_description
 
         if len(scan_hit.hsps) > 1:
-            raise DiscontinuousDomainError("""
+            raise err.DiscontinuousDomainError("""
                 Hit '{}' has more than one ({}) HSPs, which means it is probably a 
                 discontinuous domain (this pipeline is not currently able to process 
                 discontinuous domains).
@@ -170,7 +178,7 @@ class SelectTemplateHit(models.Model):
         dom_seqs = [seq for seq in ff_aln.sequences if seq.is_cath_domain]
 
         if not dom_seqs:
-            raise NoStructureDomainsError(
+            raise err.NoStructureDomainsError(
                 "no CATH domains found in FunFam alignment: {}".format(funfam_id))
 
         select_rep = SelectBlastRep(align=ff_aln, ref_seq=query_range_sequence)
@@ -272,25 +280,35 @@ class SelectTemplateTask(models.Model):
         self.save()
         return remote_task_id
 
+    def is_complete(self):
+        """
+        Returns whether or not the task has finished (ie SUCCESS or ERROR)
+        """
+        return self.status in STATUS_TYPES_COMPLETED
+
     def update_remote_task(self):
-        """Updates the task by performing a status request on the remote server"""
+        """
+        Updates the task by performing a status request on the remote server
+        """
 
         LOG.info("update_remote_task: %s '%s'",
                  self.query_id, self.remote_task_id)
 
         if not self.remote_task_id:
-            LOG.info("update_remote_task: %s no_remote_task_id", self)
-            return
+            raise err.NoRemoteTaskIdError(
+                'failed to update remote task: remote_task_id not set')
 
-        if self.status in [STATUS_SUCCESS, STATUS_ERROR]:
+        if self.status in STATUS_TYPES_COMPLETED:
             LOG.info("update_remote_task: %s task_already_complete", self.status)
-            return
+            return self.status
 
         try:
             check_response = self.api_client.check(self.remote_task_id)
         except Exception as e:
-            LOG.error(
-                "encountered error when checking remote task: (%s) %s", type(e), e)
+            msg = "encountered {} when checking remote task: {} (possibly recoverable)".format(
+                type(e), e)
+            self.update(message=msg)
+            LOG.error(msg)
             raise
         msg = check_response.message
 
@@ -304,14 +322,17 @@ class SelectTemplateTask(models.Model):
                 LOG.error(
                     "encountered an error when outputting results as JSON: [%s] %s", type(e), e)
                 raise
-
+            self.message = ''
             self.status = STATUS_SUCCESS
 
         elif msg == 'queued':
+            self.message = 'remote job still in queue'
             self.status = STATUS_QUEUED
         elif msg == 'running':
+            self.message = 'remote job currently running'
             self.status = STATUS_RUNNING
         elif msg == 'error':
+            self.message = 'remote job in error state'
             self.status = STATUS_ERROR
         else:
             self.status = STATUS_ERROR
@@ -319,16 +340,25 @@ class SelectTemplateTask(models.Model):
                 msg)
 
         self.save()
+        return self.status
 
-    def get_resolved_hits(self):
+    def create_resolved_hits(self):
         """
-        Returns :class:`SelectTemplateHit` entries for the resolved funfam scan
+        Creates :class:`SelectTemplateHit` entries for the resolved funfam scan
         """
 
-        results_data = json.loads(self.results_json)
-        cath_version = results_data['cath_version']
-        scan_data = results_data['funfam_resolved_scan']
-        scan = Scan(**scan_data)
+        if not self.results_json:
+            raise err.NoResultsDataError()
+
+        try:
+            results_data = json.loads(self.results_json)
+            cath_version = results_data['cath_version']
+            scan_data = results_data['funfam_resolved_scan']
+            scan = Scan(**scan_data)
+        except:
+            raise err.ParseDataError("Failed to parse 'results_json' (scan: {}): {}".format(
+                scan, self.results_json[:100] + '...'
+            ))
 
         if len(scan.results) != 1:
             raise Exception("expected exactly 1 result in scan, got {} (scan:{})".format(
@@ -336,12 +366,21 @@ class SelectTemplateTask(models.Model):
 
         result = scan.results[0]
         hits = []
+        LOG.info("Found %s regions in the query sequence that match CATH FunFams", len(
+            result.hits))
         for scan_hit in result.hits:
+            query_range = ','.join(
+                ['{}-{}'.format(hsp.query_start, hsp.query_end) for hsp in scan_hit.hsps])
+            LOG.info("Adding SelectTemplateHit for best structural match in region %s: funfam=%s",
+                     query_range, scan_hit.match_name)
             hit = SelectTemplateHit.create_from_scan_hit(
                 scan_hit=scan_hit,
                 cath_version=cath_version,
                 task_uuid=self.uuid,
                 is_resolved_hit=True)
+            hit.save()
             hits.extend([hit])
+
+        self.update(message="Created {} hits".format(len(hits)))
 
         return hits
