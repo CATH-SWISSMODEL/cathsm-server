@@ -58,6 +58,18 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Europe/London'
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient"
+        },
+        "KEY_PREFIX": "cathapi"
+    }
+}
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
@@ -187,6 +199,19 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication', ),
 }
 
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Basic': {
+            'type': 'basic'
+        },
+        'api_key': {
+            'type': 'apiKey',
+            'name': 'api_key',
+            'in': 'header'
+        }
+    }
+}
+
 # logging
 # https://docs.djangoproject.com/en/2.1/topics/logging/
 # https://lincolnloop.com/blog/django-logging-right-way/
@@ -196,7 +221,7 @@ LOGGING_CONFIG = None
 LOG_LEVEL = os.environ.get('CATHAPI_LOGLEVEL', 'info').upper()
 logging.config.dictConfig({
     'version': 1,
-    'disable_existing_loggers': False,
+    'disable_existing_loggers': True,
     'formatters': {
         'console': {
             'format': '%(asctime)s %(name)35s:%(lineno)-5s %(levelname)-8s | %(message)s',
@@ -207,7 +232,14 @@ logging.config.dictConfig({
             'class': 'logging.StreamHandler',
             'formatter': 'console',
         },
-        # this causes permission problems with production server
+        'celery': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'celery.log',
+            'formatter': 'console',
+            'maxBytes': 1024 * 1024 * 100,  # 100 mb
+        },
+        # this causes permission problems with production server so
         # log via stdout/stderr and let web server deal with issues
         # 'file': {
         #     'level': 'DEBUG',
@@ -240,6 +272,11 @@ logging.config.dictConfig({
             'level': LOG_LEVEL,
             'handlers': ['console'],
             'propagate': True,
+        },
+        'celery': {
+            'level': LOG_LEVEL,
+            'handlers': ['celery', 'console'],
+            'level': 'DEBUG',
         },
     }
 })
