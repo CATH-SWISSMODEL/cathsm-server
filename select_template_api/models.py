@@ -9,7 +9,9 @@ CATH API Models
 """
 
 import logging
+import io
 import json
+import re
 import uuid
 
 from django.db import models
@@ -59,6 +61,8 @@ class SelectTemplateAlignment(models.Model):
 
     pdb_id = models.CharField(max_length=4, blank=False, unique=False)
     auth_asym_id = models.CharField(max_length=4, blank=False, unique=False)
+    target_sequence = models.CharField(
+        max_length=2000, blank=False, unique=False)
     template_sequence = models.CharField(
         max_length=2000, blank=False, unique=False)
     template_seqres_offset = models.IntegerField(
@@ -81,7 +85,7 @@ class SelectTemplateHit(models.Model):
     ff_name = models.CharField(max_length=500, blank=False, unique=False)
     is_resolved_hit = models.BooleanField(blank=False, default=False)
 
-    ff_cath_domain_count = models.BooleanField(null=True)
+    ff_cath_domain_count = models.IntegerField(null=True)
     ff_uniq_ec_count = models.IntegerField(null=True)
     ff_uniq_go_count = models.IntegerField(null=True)
     ff_seq_count = models.IntegerField(null=True)
@@ -102,7 +106,12 @@ class SelectTemplateHit(models.Model):
         # http://www.cathdb.info/version/v4_2_0/superfamily/1.10.8.10/funfam/10980/files/stockholm?task_id=&max_sequences=200&onlyseq=1
 
         # TODO: move to cathpy
-        sfam_id, _, ff_num = funfam_id.split('-')
+        try:
+            sfam_id, _, ff_num = re.split(r'[\-/]', funfam_id)
+        except ValueError as e:
+            LOG.error('failed to parse funfam id "%s": %s', funfam_id, e)
+            raise
+
         ff_url = '{base_url}/version/{version}/superfamily/{sfam_id}/funfam/{ff_num}/files/stockholm'.format(
             base_url='http://www.cathdb.info',
             version=cath_version,
@@ -111,7 +120,8 @@ class SelectTemplateHit(models.Model):
         )
         res = requests.get(ff_url)
         res.raise_for_status()
-        aln = Align.new_from_stockholm(res.content)
+        sto_io = io.StringIO(res.content.decode('utf-8'))
+        aln = Align.new_from_stockholm(sto_io)
         return aln
 
     @classmethod
@@ -150,7 +160,7 @@ class SelectTemplateHit(models.Model):
         hit_evalue = scan_hsp.evalue
         hit_bitscore = scan_hsp.score
 
-        task = SelectTemplateTask.objects.get(task_uuid)
+        task = SelectTemplateTask.objects.get(uuid=task_uuid)
         if not task:
             raise Exception(
                 'failed to find task with task_uuid="{}"'.format(task_uuid))
@@ -188,45 +198,53 @@ class SelectTemplateHit(models.Model):
             align=ff_aln, sequence=query_range_sequence)
 
         aln_with_query = add_sequence.run()
-        aln_with_query = aln_with_query.subset(
-            [task_seq.uid, best_hit.subject]).remove_alignment_gaps()
 
-        target_sequence = aln_with_query.find_seq_by_id(task_seq.uid)
-        template_sequence = aln_with_query.find_seq_by_id(best_hit.subject)
-        template_seqres_offset = template_sequence.segs[0].start
+        id1 = query_range_sequence.uid
+        id2 = best_hit.subject
+        LOG.info(
+            "extracting sequences with ids ['%s', '%s'] from alignment", id1, id2)
+        aln_with_query = aln_with_query.subset(
+            [id1, id2]).remove_alignment_gaps()
+
+        target_sequence = aln_with_query.find_seq_by_id(id1)
+        template_sequence = aln_with_query.find_seq_by_id(id2)
+        template_seqres_offset = template_sequence.segs[0].start - 1
 
         domain_id = best_hit.subject
-
         pdb_id = domain_id[:4]
         auth_asym_id = domain_id[4:5]
 
         LOG.info('Creating entry in SelectTemplateHit')
-        select_template_hit = SelectTemplateHit(
-            task_uuid=task_uuid,
-            query_range=query_range_sequence.seginfo,
-            query_range_sequence=query_range_sequence.seq,
-            ff_id=funfam_id,
-            ff_name=funfam_name,
-            is_resolved_hit=is_resolved_hit,
-            ff_cath_domain_count=ff_cath_domain_count,
-            ff_seq_count=ff_seq_count,
-            ff_uniq_ec_count=ff_uniq_ec_count,
-            ff_uniq_go_count=ff_uniq_go_count,
-            ff_dops_score=ff_dops_score,
-            evalue=hit_evalue,
-            bitscore=hit_bitscore,
-        )
+        hit_args = {
+            'task_uuid': task_uuid,
+            'query_range': query_range_sequence.seginfo,
+            'query_range_sequence': query_range_sequence.seq,
+            'ff_id': funfam_id,
+            'ff_name': funfam_name,
+            'is_resolved_hit': is_resolved_hit,
+            'ff_cath_domain_count': ff_cath_domain_count,
+            'ff_seq_count': ff_seq_count,
+            'ff_uniq_ec_count': ff_uniq_ec_count,
+            'ff_uniq_go_count': ff_uniq_go_count,
+            'ff_dops_score': ff_dops_score,
+            'evalue': hit_evalue,
+            'bitscore': hit_bitscore,
+        }
+        LOG.info("saving hit: %s", hit_args)
+        select_template_hit = SelectTemplateHit(**hit_args)
         select_template_hit.save()
 
         LOG.info('Creating entry in SelectTemplateAlignment')
-        template_alignment = SelectTemplateAlignment(
-            hit_uuid=select_template_hit.uuid,
-            target_sequence=target_sequence,
-            template_sequence=template_sequence,
-            template_seqres_offset=template_seqres_offset,
-            pdb_id=pdb_id,
-            auth_asym_id=auth_asym_id,
-        )
+        aln_args = {
+            'hit_uuid': select_template_hit.uuid,
+            'target_sequence': target_sequence.seq,
+            'template_sequence': template_sequence.seq,
+            'template_seqres_offset': template_seqres_offset,
+            'pdb_id': pdb_id,
+            'auth_asym_id': auth_asym_id,
+        }
+        LOG.info("saving aln: %s", aln_args)
+        template_alignment = SelectTemplateAlignment(**aln_args)
         template_alignment.save()
 
         return select_template_hit
@@ -246,7 +264,7 @@ class SelectTemplateTask(models.Model):
 
     status = models.CharField(
         max_length=10, choices=STATUS_CHOICES, default=STATUS_UNKNOWN)
-    message = models.CharField(max_length=150)
+    message = models.CharField(max_length=1000)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     results_json = models.CharField(max_length=100000, blank=True)
@@ -289,8 +307,13 @@ class SelectTemplateTask(models.Model):
     def update_remote_task(self):
         """
         Updates the task by performing a status request on the remote server
+
+        Returns:
+            is_remote_complete (bool): whether the remote task has completed
+
         """
 
+        is_remote_complete = False
         LOG.info("update_remote_task: %s '%s'",
                  self.query_id, self.remote_task_id)
 
@@ -307,13 +330,15 @@ class SelectTemplateTask(models.Model):
         except Exception as e:
             msg = "encountered {} when checking remote task: {} (possibly recoverable)".format(
                 type(e), e)
-            self.update(message=msg)
+            self.message = msg
+            self.save()
             LOG.error(msg)
             raise
         msg = check_response.message
 
         # make these checks explicit so we can add extra hooks to each stage
         if msg == 'done':
+            is_remote_complete = True
             results_response = self.api_client.results(self.remote_task_id)
 
             try:
@@ -322,16 +347,16 @@ class SelectTemplateTask(models.Model):
                 LOG.error(
                     "encountered an error when outputting results as JSON: [%s] %s", type(e), e)
                 raise
-            self.message = ''
-            self.status = STATUS_SUCCESS
+            self.message = 'remote job finished; processing results'
 
         elif msg == 'queued':
             self.message = 'remote job still in queue'
             self.status = STATUS_QUEUED
         elif msg == 'running':
-            self.message = 'remote job currently running'
+            self.message = 'remote job running'
             self.status = STATUS_RUNNING
         elif msg == 'error':
+            is_remote_complete = True
             self.message = 'remote job in error state'
             self.status = STATUS_ERROR
         else:
@@ -340,7 +365,7 @@ class SelectTemplateTask(models.Model):
                 msg)
 
         self.save()
-        return self.status
+        return is_remote_complete
 
     def create_resolved_hits(self):
         """
@@ -381,6 +406,7 @@ class SelectTemplateTask(models.Model):
             hit.save()
             hits.extend([hit])
 
-        self.update(message="Created {} hits".format(len(hits)))
+        self.message = "Created {} hits".format(len(hits))
+        self.save()
 
         return hits

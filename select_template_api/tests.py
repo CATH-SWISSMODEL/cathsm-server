@@ -15,7 +15,7 @@ from rest_framework import status
 from cathpy.align import Align, Sequence
 
 from .models import SelectTemplateTask
-from .models import STATUS_QUEUED, STATUS_RUNNING, STATUS_ERROR, STATUS_SUCCESS
+from .models import STATUS_UNKNOWN, STATUS_QUEUED, STATUS_RUNNING, STATUS_ERROR, STATUS_SUCCESS
 from .select_template import SelectBlastRep, MafftAddSequence
 
 LOG = logging.getLogger(__name__)
@@ -263,8 +263,10 @@ class ViewTestCase(TestCase):
                 raise Exception(
                     "check response does not have 'status' field: {}".format(res_check_data))
 
+            LOG.info("check: %s", res_check_data)
+
             task_status = res_check_data['status']
-            if task_status in [STATUS_QUEUED, STATUS_RUNNING]:
+            if task_status in [STATUS_UNKNOWN, STATUS_QUEUED, STATUS_RUNNING]:
                 pass
             elif task_status == STATUS_ERROR:
                 raise Exception(

@@ -22,12 +22,12 @@ urlpatterns = {
         SelectTemplateTasksStatusView.as_view(), name="select_template_status"),
     url(r'^select-template/(?P<uuid>[0-9a-f\-]{32,40})/results$',
         SelectTemplateTasksResultView.as_view(), name="select_template_results"),
-    url(r'^select-template/(?P<uuid>[0-9a-f\-]{32,40})/hits$',
+    url(r'^select-template/(?P<task_uuid>[0-9a-f\-]{32,40})/hits$',
         SelectTemplateHitsView.as_view(), name="select_template_hits"),
-    url(r'^select-template/(?P<uuid>[0-9a-f\-]{32,40})/resolved_hits$',
+    url(r'^select-template/(?P<task_uuid>[0-9a-f\-]{32,40})/resolved_hits$',
         SelectTemplateResolvedHitsView.as_view(), name="select_template_resolved_hits"),
-    url(r'^select-template/align-hit/(?P<uuid>[0-9a-f\-]{32,40})/(?P<align_method>)$',
-        SelectTemplateAlignmentsView.as_view(), name="select_template_align_hit"),
+    url(r'^select-template/hit/(?P<hit_uuid>[0-9a-f\-]{32,40})/alignments$',
+        SelectTemplateAlignmentsView.as_view(), name="select_template_alignments"),
 }
 
 urlpatterns = format_suffix_patterns(urlpatterns)

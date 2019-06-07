@@ -16,32 +16,33 @@ from .serializers import (SelectTemplateQuerySerializer,
 from .models import SelectTemplateTask, SelectTemplateHit, SelectTemplateAlignment
 from .models import STATUS_ERROR
 
+from .tasks import process_select_template_task
+
 LOG = logging.getLogger(__name__)
 
 
-class SelectTemplateAlignmentsView(generics.RetrieveAPIView):
+class SelectTemplateAlignmentsView(generics.ListAPIView):
     """Generic view for non-resolved hits from template scan."""
 
-    queryset = SelectTemplateAlignment.objects.all()
-    serializer_class = SelectTemplateHitSerializer
-    lookup_field = 'uuid'
+    serializer_class = SelectTemplateAlignmentSerializer
 
-    def get_entries_for_hit(self, hit_uuid):
-        """
-        Gets the alignment entries for a given hit
-        """
-        # Note the use of `get_queryset()` instead of `self.queryset`
-        queryset = self.get_queryset().filter(hit_uuid=hit_uuid)
-        serializer = SelectTemplateAlignmentSerializer(queryset, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        hit_uuid = self.kwargs['hit_uuid']
+        qs = SelectTemplateAlignment.objects.filter(
+            hit_uuid=hit_uuid)
+        return qs
 
 
-class SelectTemplateHitsView(generics.RetrieveAPIView):
+class SelectTemplateHitsView(generics.ListAPIView):
     """Generic view for non-resolved hits from template scan."""
 
-    queryset = SelectTemplateHit.objects.filter(is_resolved_hit=False)
     serializer_class = SelectTemplateHitSerializer
-    lookup_field = 'uuid'
+
+    def get_queryset(self):
+        task_uuid = self.kwargs['task_uuid']
+        qs = SelectTemplateHit.objects.filter(
+            is_resolved_hit=False, task_uuid=task_uuid)
+        return qs
 
     def hits(self, request):
         """Returns serialized hits"""
@@ -51,12 +52,16 @@ class SelectTemplateHitsView(generics.RetrieveAPIView):
         return Response(serializer.data)
 
 
-class SelectTemplateResolvedHitsView(generics.RetrieveAPIView):
+class SelectTemplateResolvedHitsView(generics.ListAPIView):
     """Generic view for resolved hits from template scan."""
 
-    queryset = SelectTemplateHit.objects.filter(is_resolved_hit=True)
     serializer_class = SelectTemplateHitSerializer
-    lookup_field = 'uuid'
+
+    def get_queryset(self):
+        task_uuid = self.kwargs['task_uuid']
+        qs = SelectTemplateHit.objects.filter(
+            is_resolved_hit=True, task_uuid=task_uuid)
+        return qs
 
     def hits(self, request):
         """Returns serialized hits"""
@@ -102,9 +107,20 @@ class SelectTemplateTasksCreateView(TemplateTasksView, generics.CreateAPIView):
         LOG.debug("%s.perform_create: %s", str(self), str(serializer))
 
         try:
-            obj = serializer.save(client_ip=client_ip)
-            task_id = obj.submit_remote_task()
-            serializer.save(remote_task_id=task_id)
+            task = serializer.save(client_ip=client_ip)
+            LOG.info(
+                "Submitting remote task to FunFHMMER server... task[%s]: %s", type(task), task)
+            remote_task_id = task.submit_remote_task()
+            LOG.info("    ... done (remote_task_id=%s)", remote_task_id)
+            task.remote_task_id = remote_task_id
+            LOG.info("about to save task: %s",
+                     SelectTemplateTask.objects.get(uuid=task.uuid))
+            task.save()
+            LOG.info("saved task: %s",
+                     SelectTemplateTask.objects.get(uuid=task.uuid))
+            LOG.info("Processing with delayed task")
+            process_select_template_task.delay(task.uuid)
+            LOG.info(" ... task running")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as err:
             LOG.error("Caught error when submitting sequence (id:'%s', seq:'%s') to FunFHMMER: [%s] %s",
@@ -124,17 +140,3 @@ class SelectTemplateTasksStatusView(TemplateTasksView, generics.RetrieveDestroyA
     """This class handles the http GET and DELETE requests."""
 
     serializer_class = SelectTemplateStatusSerializer
-
-    # overriding this so we can update the remote task whenever we
-    # check the status of this task
-    def get_object(self):
-        queryset = self.get_queryset()
-        filt = {}
-        for field in [self.lookup_field]:
-            filt[field] = self.kwargs[field]
-
-        obj = get_object_or_404(queryset, **filt)
-        self.check_object_permissions(self.request, obj)
-
-        obj.update_remote_task()
-        return obj

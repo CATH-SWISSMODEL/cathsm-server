@@ -16,7 +16,7 @@ class SelectTemplateQuerySerializer(serializers.ModelSerializer):
         """Meta class to map serializer's fields with the model fields."""
         model = SelectTemplateTask
         fields = ('uuid', 'status', 'message', 'query_id',
-                  'query_sequence', 'date_created', 'date_modified')
+                  'query_sequence', 'date_created', 'date_modified', )
         read_only_fields = ('status', 'message',
                             'date_created', 'date_modified',)
 
@@ -73,5 +73,5 @@ class SelectTemplateAlignmentSerializer(serializers.ModelSerializer):
         """Meta class to map serializer's fields with the model fields."""
         model = SelectTemplateAlignment
         fields = ('uuid', 'hit_uuid', 'date_created', 'align_method', 'pdb_id',
-                  'auth_asym_id', 'template_sequence', 'template_seqres_offset')
+                  'auth_asym_id', 'target_sequence', 'template_sequence', 'template_seqres_offset')
         read_only_fields = fields
