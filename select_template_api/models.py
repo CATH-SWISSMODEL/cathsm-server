@@ -23,6 +23,8 @@ from cathpy.funfhmmer import Client
 from cathpy.models import Scan, ScanHit, Segment
 from cathpy.align import Align, Sequence
 
+import cathpy.error
+
 from . import errors as err
 from .select_template import SelectBlastRep, MafftAddSequence
 
@@ -185,11 +187,35 @@ class SelectTemplateHit(models.Model):
         ff_seq_count = ff_aln_meta.seq_count
         ff_dops_score = ff_aln_meta.dops_score
 
-        dom_seqs = [seq for seq in ff_aln.sequences if seq.is_cath_domain]
+        # cathpy.seq.is_cath_domain needs fixing...
+        is_cath_domain = re.compile('^[0-9][a-zA-Z0-9]{3}[A-Z][0-9]{2}\b')
+        dom_seqs = [seq for seq in ff_aln.sequences if is_cath_domain.match(seq.uid)]
+
+        LOG.info('Creating entry in SelectTemplateHit')
+        hit_args = {
+            'task_uuid': task_uuid,
+            'query_range': query_range_sequence.seginfo,
+            'query_range_sequence': query_range_sequence.seq,
+            'ff_id': funfam_id,
+            'ff_name': funfam_name,
+            'is_resolved_hit': is_resolved_hit,
+            'ff_cath_domain_count': ff_cath_domain_count,
+            'ff_seq_count': ff_seq_count,
+            'ff_uniq_ec_count': ff_uniq_ec_count,
+            'ff_uniq_go_count': ff_uniq_go_count,
+            'ff_dops_score': ff_dops_score,
+            'evalue': hit_evalue,
+            'bitscore': hit_bitscore,
+        }
+        LOG.info("saving hit: %s", hit_args)
+        select_template_hit = SelectTemplateHit(**hit_args)
+        select_template_hit.save()
 
         if not dom_seqs:
-            raise err.NoStructureDomainsError(
-                "no CATH domains found in FunFam alignment: {}".format(funfam_id))
+            LOG.warning('No CATH domains found in FunFam alignment: {}'.format(funfam_id))
+            return select_template_hit
+
+        LOG.info('Found %s CATH domains in alignments', len(dom_seqs))
 
         select_rep = SelectBlastRep(align=ff_aln, ref_seq=query_range_sequence)
         best_hit = select_rep.get_best_blast_hit(only_cath_domains=True)
@@ -213,26 +239,6 @@ class SelectTemplateHit(models.Model):
         domain_id = best_hit.subject
         pdb_id = domain_id[:4]
         auth_asym_id = domain_id[4:5]
-
-        LOG.info('Creating entry in SelectTemplateHit')
-        hit_args = {
-            'task_uuid': task_uuid,
-            'query_range': query_range_sequence.seginfo,
-            'query_range_sequence': query_range_sequence.seq,
-            'ff_id': funfam_id,
-            'ff_name': funfam_name,
-            'is_resolved_hit': is_resolved_hit,
-            'ff_cath_domain_count': ff_cath_domain_count,
-            'ff_seq_count': ff_seq_count,
-            'ff_uniq_ec_count': ff_uniq_ec_count,
-            'ff_uniq_go_count': ff_uniq_go_count,
-            'ff_dops_score': ff_dops_score,
-            'evalue': hit_evalue,
-            'bitscore': hit_bitscore,
-        }
-        LOG.info("saving hit: %s", hit_args)
-        select_template_hit = SelectTemplateHit(**hit_args)
-        select_template_hit.save()
 
         LOG.info('Creating entry in SelectTemplateAlignment')
         aln_args = {
@@ -339,15 +345,13 @@ class SelectTemplateTask(models.Model):
         # make these checks explicit so we can add extra hooks to each stage
         if msg == 'done':
             is_remote_complete = True
-            results_response = self.api_client.results(self.remote_task_id)
-
+            
             try:
+                results_response = self.api_client.results(self.remote_task_id)
                 self.results_json = results_response.as_json()
-            except Exception as e:
-                LOG.error(
-                    "encountered an error when outputting results as JSON: [%s] %s", type(e), e)
-                raise
-            self.message = 'remote job finished; processing results'
+                self.message = 'remote job finished; processing results'
+            except cathpy.error.NoMatchesError:
+                self.message = 'remote job finished (no FunFam matches found)'
 
         elif msg == 'queued':
             self.message = 'remote job still in queue'
@@ -373,7 +377,7 @@ class SelectTemplateTask(models.Model):
         """
 
         if not self.results_json:
-            raise err.NoResultsDataError()
+            raise err.NoResultsDataError('No data in field "results_json"')
 
         try:
             results_data = json.loads(self.results_json)
