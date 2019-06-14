@@ -16,7 +16,7 @@ DATABASES = {
     }
 }
 
-ALLOWED_HOSTS = ['mysite.com', ]
+ALLOWED_HOSTS = ['.cathdb.info', 'orengoapi01']
 
 # CACHES = {
 #     "default": {
