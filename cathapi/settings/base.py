@@ -39,7 +39,7 @@ del secret_files
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = [".cathdb.info", "orengoapi01", "localhost",
+ALLOWED_HOSTS = ["api01.cathdb.info", ".cathdb.info", "orengoapi01", "localhost",
                  "127.0.0.1", "127.0.0.1:8000", "0.0.0.0"]
 
 # SENTRY (logging)
@@ -180,6 +180,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
 STATICFILES_DIRS = [
+    STATIC_ROOT,
     os.path.join(REACT_APP_DIR, 'build', 'static'),
 ]
 
