@@ -123,7 +123,7 @@ class SelectTemplateHit(models.Model):
         res = requests.get(ff_url)
         res.raise_for_status()
         sto_io = io.StringIO(res.content.decode('utf-8'))
-        aln = Align.new_from_stockholm(sto_io)
+        aln = Align.from_stockholm(sto_io)
         return aln
 
     @classmethod

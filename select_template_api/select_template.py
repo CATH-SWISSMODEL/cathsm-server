@@ -54,7 +54,7 @@ class BlastHit(object):
         self.subject_sequence = subject_sequence
 
     @classmethod
-    def new_from_outfmt_7(cls, hit_line):
+    def from_outfmt_7(cls, hit_line):
         """
         Creates a new instance from a BLAST format 7 results string
         """
@@ -148,7 +148,7 @@ class SelectBlastRep(object):
                     if line.startswith('#'):
                         continue
 
-                    blast_hit = BlastHit.new_from_outfmt_7(line)
+                    blast_hit = BlastHit.from_outfmt_7(line)
 
                     subject_seq = self.align.find_seq_by_id(blast_hit.subject)
 
@@ -254,7 +254,7 @@ class MafftAddSequence(object):
         outfile.close()
 
         # transfer meta data from original alignment
-        merged_aln = Align.new_from_fasta(outfile.name)
+        merged_aln = Align.from_fasta(outfile.name)
 
         new_aln = self.align.copy()
 

@@ -34,10 +34,12 @@ CMIRLPGPLPVGTKVTLIGRQGDEVISIDDVARHLETINYEVPCTISYRVPRIFFRHKRIMEVRNAIGRGESSA
 
 
 class SelectTemplateTest(TestCase):
-
+    
     def setUp(self):
         """Define the test client and other test variables."""
 
+        super().setUp()
+    
         self.query_seq = Sequence(DEFAULT_QUERY_ID, DEFAULT_QUERY_SEQ)
         self.query_subseq = self.query_seq.apply_segments(
             [[50, 150], [200, 250]])
@@ -48,8 +50,8 @@ class SelectTemplateTest(TestCase):
         self.ff1_file = os.path.join(data_dir, '3.20.20.10-ff-9715.sto.gz')
         self.ff2_file = os.path.join(data_dir, '2.40.37.10-ff-6607.sto.gz')
 
-        self.ff1_aln = Align.new_from_stockholm(self.ff1_file)
-        self.ff2_aln = Align.new_from_stockholm(self.ff2_file)
+        self.ff1_aln = Align.from_stockholm(self.ff1_file)
+        self.ff2_aln = Align.from_stockholm(self.ff2_file)
 
     def test_select_blast_rep(self):
 
