@@ -1,10 +1,10 @@
 
 # https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-centos-7
 
-sudo yum install python36 git redis nginx
+sudo yum install python36 git redis nginx postgresql  postgresql-contrib postgresql-devel
 
-sudo systemctl start redis
-sudo systemctl enable redis
+sudo systemctl start redis postgresql nginx
+sudo systemctl enable redis postgresql nginx
 
 APPDIR=/opt/cath-swissmodel-api
 #SRCDIR=$APPDIR
@@ -60,10 +60,13 @@ sudo cp $SRCDIR/deploy/etc/systemd/system/celery /etc/systemd/system/
 sudo systemctl daemon-reload
 
 
-
 # setup nginx
 sudo cp $SRCDIR/deploy/etc/nginx/nginx.conf /etc/nginx/
 
+# http://docs.gunicorn.org/en/stable/deploy.html
+
+
+sudo semanage permissive -a httpd_t
 
 
 # run tests
