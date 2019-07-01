@@ -24,3 +24,4 @@ redis
 psycopg2
 django-redis
 flower
+python-decouple

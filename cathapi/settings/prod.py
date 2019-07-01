@@ -1,18 +1,21 @@
 """Setting for production environment"""
 
+from decouple import config
+
 from .base import *
 
 DEBUG = False
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        # 'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        # 'NAME': 'cathapi',
-        # 'USER': 'cathapiuser',
-        # 'HOST': 'localhost',
-        # 'PORT': 5432,
+        # 'ENGINE': 'django.db.backends.sqlite3',
+        # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': config('PG_NAME', default='cathapi', cast=str),
+        'USER': config('PG_USER', default='cathapiuser', cast=str),
+        'PASSWORD': config('PG_PASSWORD', cast=str),
+        'HOST': config('PG_HOST', default='localhost', cast=str),
+        'PORT': config('PG_PORT', default=5432, cast=int),
     }
 }
 
