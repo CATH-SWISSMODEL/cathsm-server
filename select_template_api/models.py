@@ -115,11 +115,12 @@ class SelectTemplateHit(models.Model):
             raise
 
         ff_url = '{base_url}/version/{version}/superfamily/{sfam_id}/funfam/{ff_num}/files/stockholm'.format(
-            base_url='http://www.cathdb.info',
+            base_url='https://www.cathdb.info',
             version=cath_version,
             sfam_id=sfam_id,
             ff_num=ff_num,
         )
+        LOG.info("GET {}".format(ff_url))
         res = requests.get(ff_url)
         res.raise_for_status()
         sto_io = io.StringIO(res.content.decode('utf-8'))
