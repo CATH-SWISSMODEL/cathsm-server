@@ -11,7 +11,7 @@ import tempfile
 
 from cathpy.align import Align, Sequence
 
-from .errors import NoStructureDomainsError
+from . import errors as errors
 
 LOG = logging.getLogger(__name__)
 
@@ -176,13 +176,15 @@ class SelectBlastRep(object):
             self.run()
         return self._blast_hits
 
-    def get_best_blast_hit(self, *, sort_by=None, only_cath_domains=True, reverse=True):
+    def get_best_blast_hit(self, *, sort_by=None, only_cath_domains=True,
+                           ignore_discontinuous=False, reverse=True):
         """
         Returns the 'best' blast hit
 
         Args:
             sort_by (function): function to use for sorting (default: `lambda h: h.bit_score`)
             only_cath_domains (bool): only consider CATH domains (default: True)
+            ignore_discontinuous (bool): ignore discontinuous CATH domains (default: False)
             reverse (bool): reverse the order of the sort hits
 
         Returns:
@@ -192,9 +194,13 @@ class SelectBlastRep(object):
         def sort_by_bitscore(hit):
             return hit.bit_score
 
-        def is_seq_valid_cath_domain(seq_id):
+        def seq_is_valid_cath_domain(seq_id):
             hdr_info = Sequence.split_hdr(seq_id)
             return bool(hdr_info['id_type'] == 'domain')
+
+        def seq_has_multiple_segments(seq_id):
+            hdr_info = Sequence.split_hdr(seq_id)
+            return bool(len(hdr_info['segs']) > 1)
 
         if not sort_by:
             sort_by = sort_by_bitscore
@@ -202,15 +208,35 @@ class SelectBlastRep(object):
         sorted_hits = sorted(self.blast_hits,
                              key=sort_by, reverse=reverse)
 
+        error = None
+
+        total_domains = len(sorted_hits)
+
         if only_cath_domains:
             sorted_hits = [
-                h for h in sorted_hits if is_seq_valid_cath_domain(h.subject)]
+                h for h in sorted_hits if seq_is_valid_cath_domain(h.subject)]
             if not sorted_hits:
-                raise NoStructureDomainsError(
+                error = errors.NoStructureDomainsError(
                     'failed to find any members of the alignment with CATH domain ids')
+        total_domains_after_cath_filter = len(sorted_hits)
 
-        best_hit = sorted_hits[0]
-        return best_hit
+        if ignore_discontinuous and not error:
+            sorted_hits = [
+                h for h in sorted_hits if not seq_has_multiple_segments(h.subject)]
+            if not sorted_hits:
+                error = errors.NoDomainsError(
+                    'failed to find any members of the alignment with non-discontinuous domains')
+        total_domains_after_discontinuous_filter = len(sorted_hits)
+
+        LOG.info("get_best_blast_hit: total=%s after_cath_filter=%s after_discontinuous_filter=%s",
+                 total_domains,
+                 total_domains_after_cath_filter,
+                 total_domains_after_discontinuous_filter)
+
+        if error:
+            raise error
+
+        return sorted_hits[0]
 
     def get_best_blast_sequence(self, *, only_cath_domains=True):
         """

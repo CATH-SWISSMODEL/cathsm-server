@@ -3,6 +3,13 @@ Custom errors
 """
 
 
+class NoDomainsError(Exception):
+    """
+    No valid domains in alignment
+    """
+    pass
+
+
 class NoStructureDomainsError(Exception):
     """
     No structural domains in alignment
