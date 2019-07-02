@@ -15,12 +15,6 @@ DEBUG = True
 #     }
 # }
 
-# These settings make sure any tasks run in testing 
-# are run locally with the 'test' database
-CELERY_ALWAYS_EAGER = True
-TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner'
-
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
