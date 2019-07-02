@@ -46,6 +46,10 @@ ALIGN_METHOD_HHSEARCH = "hhsearch"
 ALIGN_METHOD_CHOICES = ((st, st) for st in (
     ALIGN_METHOD_MAFFT, ))
 
+
+CATH_FUNFAM_STOCKHOLM_URL = 'https://www.cathdb.info' + \
+    '/version/{version}/superfamily/{sfam_id}/funfam/{ff_num}/files/stockholm'
+
 # Create your models here.
 
 
@@ -114,8 +118,7 @@ class SelectTemplateHit(models.Model):
             LOG.error('failed to parse funfam id "%s": %s', funfam_id, e)
             raise
 
-        ff_url = '{base_url}/version/{version}/superfamily/{sfam_id}/funfam/{ff_num}/files/stockholm'.format(
-            base_url='https://www.cathdb.info',
+        ff_url = CATH_FUNFAM_STOCKHOLM_URL.format(
             version=cath_version,
             sfam_id=sfam_id,
             ff_num=ff_num,
@@ -189,8 +192,7 @@ class SelectTemplateHit(models.Model):
         ff_dops_score = ff_aln_meta.dops_score
 
         # cathpy.seq.is_cath_domain needs fixing...
-        is_cath_domain = re.compile('^[0-9][a-zA-Z0-9]{3}[A-Z][0-9]{2}\b')
-        dom_seqs = [seq for seq in ff_aln.sequences if is_cath_domain.match(seq.uid)]
+        dom_seqs = [seq for seq in ff_aln.sequences if seq.is_cath_domain]
 
         LOG.info('Creating entry in SelectTemplateHit')
         hit_args = {
@@ -213,13 +215,15 @@ class SelectTemplateHit(models.Model):
         select_template_hit.save()
 
         if not dom_seqs:
-            LOG.warning('No CATH domains found in FunFam alignment: {}'.format(funfam_id))
+            LOG.warning(
+                'No CATH domains found in FunFam alignment: {}'.format(funfam_id))
             return select_template_hit
 
         LOG.info('Found %s CATH domains in alignments', len(dom_seqs))
 
         select_rep = SelectBlastRep(align=ff_aln, ref_seq=query_range_sequence)
-        best_hit = select_rep.get_best_blast_hit(only_cath_domains=True)
+        best_hit = select_rep.get_best_blast_hit(
+            only_cath_domains=True, ignore_discontinuous=True)
 
         add_sequence = MafftAddSequence(
             align=ff_aln, sequence=query_range_sequence)
@@ -346,7 +350,7 @@ class SelectTemplateTask(models.Model):
         # make these checks explicit so we can add extra hooks to each stage
         if msg == 'done':
             is_remote_complete = True
-            
+
             try:
                 results_response = self.api_client.results(self.remote_task_id)
                 self.results_json = results_response.as_json()
