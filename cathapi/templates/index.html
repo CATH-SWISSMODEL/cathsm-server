@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-center">
+  <div class="bs-stepper">
+    <div class="bs-stepper-header" role="tablist">
+      <!-- your steps here -->
+      <div class="step" data-target="#submit-sequence-part">
+        <button type="button" class="step-trigger" role="tab" aria-controls="submit-sequence-part"
+          id="submit-sequence-part-trigger">
+          <span class="bs-stepper-circle">1</span>
+          <span class="bs-stepper-label">Submit Sequence</span>
+        </button>
+      </div>
+      <div class="line"></div>
+      <div class="step" data-target="#select-template-part">
+        <button type="button" class="step-trigger" role="tab" aria-controls="select-template-part"
+          id="select-template-part-trigger">
+          <span class="bs-stepper-circle">2</span>
+          <span class="bs-stepper-label">Select Template</span>
+        </button>
+      </div>
+      <div class="line"></div>
+      <div class="step" data-target="#view-model-part">
+        <button type="button" class="step-trigger" role="tab" aria-controls="view-model-part"
+          id="view-model-part-trigger">
+          <span class="bs-stepper-circle">3</span>
+          <span class="bs-stepper-label">View Model</span>
+        </button>
+      </div>
+    </div>
+    <div class="bs-stepper-content">
+
+      <!-- Submit Sequence -->
+      <div id="submit-sequence-part" class="content fade" role="tabpanel"
+        aria-labelledby="submit-sequence-part-trigger">
+        <form class="needs-validation" novalidate>
+          <div class="form-group">
+            <label for="input-sequence-id">Sequence ID</label>
+            <input type="text" class="form-control" id="input-sequence-id"
+              placeholder="Enter a name/id for your sequence" required>
+            <div class="invalid-feedback">Please enter a name for your sequence</div>
+            <small id="input-sequence-id-help" class="form-text text-muted">
+              If you copy/paste a FASTA formatted sequence in the box below, this field will be filled in
+              automatically.</small>
+          </div>
+          <div class="form-group">
+            <label for="input-sequence">Sequence</label>
+            <textarea rows="10" class="form-control" id="input-sequence"
+              placeholder="Enter the sequence as a string of amino acids" required
+              pattern="[^GPAVLIMCFYWHKRQNEDST\s]"></textarea>
+            <div class="invalid-feedback">Please enter a valid amino-acid sequence</div>
+            <small id="input-sequence-help" class="form-text text-muted">Copy and paste sequence as a string of
+              amino-acids (or FASTA format).</small>
+          </div>
+          <div class="step-actions d-flex justify-content-center">
+            <button class="btn btn-lg btn-inactive" data-action="clear">Clear</button>
+            <button class="btn btn-lg btn-primary btn-inactive" data-action="next" type="submit">Next</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Select Template -->
+      <div id="select-template-part" class="content fade" role="tabpanel"
+        aria-labelledby="select-template-part-trigger">
+        <div class="step-content">
+          Select template content
+        </div>
+        <div class="step-actions d-flex justify-content-center">
+          <button class="btn btn-lg btn-inactive" data-action="back">Back</button>
+          <button class="btn btn-lg btn-inactive" data-action="next">Next</button>
+        </div>
+      </div>
+
+      <!-- View Model -->
+      <div id="view-model-part" class="content fade" role="tabpanel" aria-labelledby="view-model-part-trigger">
+        <div class="step-content">
+          View model content
+        </div>
+        <div class="step-actions d-flex justify-content-center">
+          <button class="btn btn-lg btn-inactive" data-action="back">Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="stepper-status" class="alert"></div>
+
+{% endblock %}
