@@ -1,0 +1,49 @@
+version: "3.3"
+
+# Build all images:
+#
+# $ docker-compose -f docker-compose.yml build
+#
+# Start the development instance:
+#
+# $ docker-compose -f docker-compose.yml up
+#
+
+volumes:
+  django-sqlite-db:
+
+services:
+  cathapi-redis:
+    restart: always
+    build:
+       context: ./redis/
+    networks:
+      default:
+        aliases:
+          - cathapi-redis
+
+  cathapi-django:
+    restart: always
+    build:
+      context: ../
+      dockerfile: Docker/cathapi/Dockerfile
+    depends_on:
+      - cathapi-redis
+    environment:
+      - CATHAPI_DEBUG=CONTAINER
+    volumes:
+      - django-sqlite-db:/cathapi-data
+    command: /cathapi/entrypoint.sh python3 manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+
+  cathapi-celery:
+    restart: always
+    build:
+      context: ../
+      dockerfile: Docker/cathapi/Dockerfile
+    depends_on:
+      - cathapi-redis
+    environment:
+      - CATHAPI_DEBUG=CONTAINER
+    command: celery -A cathapi worker

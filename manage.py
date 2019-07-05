@@ -4,7 +4,10 @@ import sys
 
 if __name__ == "__main__":
     if 'CATHAPI_DEBUG' in os.environ:
-        django_settings = 'cathapi.settings.dev'
+        if os.environ['CATHAPI_DEBUG'].upper() == 'CONTAINER':
+            django_settings = 'cathapi.settings.container'
+        else:
+            django_settings = 'cathapi.settings.dev'
     else:
         django_settings = 'cathapi.settings.prod'
 

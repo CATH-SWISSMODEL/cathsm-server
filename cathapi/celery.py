@@ -9,7 +9,10 @@ from django.conf import settings
 
 # DJANGO_SETTINGS_MODULE=cathapi.settings.dev celery -A cathapi -l info
 if 'CATHAPI_DEBUG' in os.environ:
-    django_settings = 'cathapi.settings.dev'
+    if os.environ['CATHAPI_DEBUG'].upper() == 'CONTAINER':
+        django_settings = 'cathapi.settings.container'
+    else:
+        django_settings = 'cathapi.settings.dev'
 else:
     django_settings = 'cathapi.settings.prod'
 
