@@ -26,7 +26,7 @@ services:
     restart: always
     build:
       context: ../
-      dockerfile: ./Docker/cathapi/Dockerfile
+      dockerfile: Docker/cathapi/Dockerfile
     depends_on:
       - cathapi-redis
     environment:
@@ -41,7 +41,7 @@ services:
     restart: always
     build:
       context: ../
-      dockerfile: ./Docker/cathapi/Dockerfile
+      dockerfile: Docker/cathapi/Dockerfile
     depends_on:
       - cathapi-redis
     environment:

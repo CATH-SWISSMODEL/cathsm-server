@@ -10,8 +10,9 @@ FROM python:3.7.3-stretch
 #
 
 # Get API code inside the image
+RUN /bin/mkdir /cathapi
 ENV SRC_DIR="/cathapi"
-COPY cathapi $SRC_DIR
+COPY ./ $SRC_DIR
 
 # Install Python dependencies
 WORKDIR $SRC_DIR
