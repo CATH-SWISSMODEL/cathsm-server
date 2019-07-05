@@ -53,6 +53,9 @@ def process_select_template_task(task_uuid):
 
     try:
         select_template_task.create_resolved_hits()
+    except err.NoDomainsError as e:
+        msg = 'found no valid structural domains: {}'.format(str(e))
+        LOG.warning(msg)
     except err.NoResultsDataError:
         msg = 'found no results when searching query sequence'
         LOG.warning(msg)

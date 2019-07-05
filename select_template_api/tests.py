@@ -5,7 +5,7 @@ import logging
 import os
 import time
 
-from django.test import TestCase
+from django.test import override_settings, TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 
@@ -32,14 +32,22 @@ LPYPLKEAFSLHSRLVHVKKLQPGEKVSYGATYTAQTEEWIGTIPIGYADGWLRRLQHFHVLVDGQKAPIVGRICMDQ
 CMIRLPGPLPVGTKVTLIGRQGDEVISIDDVARHLETINYEVPCTISYRVPRIFFRHKRIMEVRNAIGRGESSA
 """.strip()
 
+# These settings make sure any tasks run in testing
+# are run locally with the 'test' database
 
-class SelectTemplateTest(TestCase):
-    
+@override_settings(CELERY_ALWAYS_EAGER=True,
+                   TEST_RUNNER='djcelery.contrib.test_runner.CeleryTestSuiteRunner')
+class CeleryTestCase(TestCase):
+    pass
+
+
+class SelectTemplateTest(CeleryTestCase):
+
     def setUp(self):
         """Define the test client and other test variables."""
 
         super().setUp()
-    
+
         self.query_seq = Sequence(DEFAULT_QUERY_ID, DEFAULT_QUERY_SEQ)
         self.query_subseq = self.query_seq.apply_segments(
             [[50, 150], [200, 250]])
@@ -71,7 +79,7 @@ class SelectTemplateTest(TestCase):
         LOG.info("subset.after:\n%s", subset_align.to_fasta())
 
 
-class ModelTestCase(TestCase):
+class ModelTestCase(CeleryTestCase):
     """This class defines the test suite for the select template model."""
 
     def setUp(self):
@@ -89,7 +97,7 @@ class ModelTestCase(TestCase):
         self.assertNotEqual(old_count, new_count)
 
 
-class ViewTestCase(TestCase):
+class ViewTestCase(CeleryTestCase):
     """Test suite for the api views."""
 
     def setUp(self):
