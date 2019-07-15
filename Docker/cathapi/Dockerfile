@@ -1,4 +1,4 @@
-FROM python:3.7.3-stretch
+FROM python:3.7.3-slim-stretch
 
 # To build it outside of docker-compose, in the toplevel directory of the repository,
 # run:
@@ -14,13 +14,13 @@ RUN /bin/mkdir /cathapi
 ENV SRC_DIR="/cathapi"
 COPY ./ $SRC_DIR
 
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ncbi-blast+ mafft libpq-dev gcc libc-dev && \
+    /bin/rm -rf /var/lib/apt/lists/*
 # Install Python dependencies
 WORKDIR $SRC_DIR
 RUN /usr/local/bin/pip install -r requirements-to-freeze.txt
-# Install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ncbi-blast+ mafft && \
-    /bin/rm -rf /var/lib/apt/lists/*
 # Create the secret key
 RUN /bin/date | /usr/bin/md5sum > secret_key.txt
 # Run the tests
