@@ -25,7 +25,9 @@ RUN apt-get update && \
     libpq-dev && \
     /bin/rm -rf /var/lib/apt/lists/* && \
 # Install Python dependencies
-    /usr/local/bin/pip install --no-cache-dir -r requirements.txt
+    /usr/local/bin/pip install --no-cache-dir -r requirements.txt && \
+# Clean up
+    apt-get purge -y --auto-remove gcc libc-dev libpq-dev
 # Create the secret key
 RUN /bin/date | /usr/bin/md5sum > secret_key.txt
 # Run the tests
@@ -33,3 +35,9 @@ RUN /bin/date | /usr/bin/md5sum > secret_key.txt
 
 COPY Docker/cathapi/entrypoint.sh $SRC_DIR
 
+# The following lets Python write to STDOUT without buffering and prevents
+# Python byte-compilation. We do not want *.pyc files generated at run-time,
+# since those will vanish on container-restart. They would be newly created
+# after every start of the container.
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
