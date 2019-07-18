@@ -10,8 +10,8 @@ FROM python:3.7.3-slim-stretch
 #
 
 # Get API code inside the image
-RUN /bin/mkdir /cathapi
 ENV SRC_DIR="/cathapi"
+RUN /bin/mkdir $SRC_DIR
 COPY ./ $SRC_DIR
 
 WORKDIR $SRC_DIR
@@ -19,8 +19,11 @@ WORKDIR $SRC_DIR
 # Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    # +134MB by ncbi-blast+
     ncbi-blast+  \
+    # +9MB by mafft
     mafft        \
+    # +81MB gcc
     gcc          \
     libc-dev     \
     libpq-dev && \
