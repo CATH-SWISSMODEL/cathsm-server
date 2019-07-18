@@ -44,6 +44,9 @@ RUN /bin/date | /usr/bin/md5sum > secret_key.txt
 
 COPY Docker/cathapi/entrypoint.sh $SRC_DIR
 
+# Create directory for static files
+RUN /bin/mkdir /static
+
 # The following lets Python write to STDOUT without buffering and prevents
 # Python byte-compilation. We do not want *.pyc files generated at run-time,
 # since those will vanish on container-restart. They would be newly created

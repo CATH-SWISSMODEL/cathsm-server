@@ -28,4 +28,10 @@ INSTALLED_APPS += [
     #    'debug_toolbar',
 ]
 
+STATICFILES_DIRS = [
+    os.path.join('static/'),
+]
+
+STATIC_ROOT = '/static'
+
 #MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware', ]

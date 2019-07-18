@@ -11,6 +11,8 @@ version: "3.3"
 
 volumes:
   django-sqlite-db:
+  www-static:
+  www-logs:
 
 services:
   cathapi-redis:
@@ -33,9 +35,23 @@ services:
       - CATHAPI_DEBUG=CONTAINER
     volumes:
       - django-sqlite-db:/cathapi-data
-    command: /cathapi/entrypoint.sh python3 manage.py runserver 0.0.0.0:8000
+      - www-static:/static
+    #command: /cathapi/entrypoint.sh python3 manage.py runserver 0.0.0.0:8000
+    command: /cathapi/entrypoint.sh gunicorn cathapi.wsgi -b 0.0.0.0:8080
+    #ports:
+    #  - "8000:8000"
+
+  nginx:
+    restart: always
+    build: 
+      context: ./nginx/
+    depends_on:
+      - cathapi-django
+    volumes:
+      - www-static:/static
+      - www-logs:/var/log/nginx
     ports:
-      - "8000:8000"
+      - "0.0.0.0:80:8000"
 
   cathapi-celery:
     restart: always

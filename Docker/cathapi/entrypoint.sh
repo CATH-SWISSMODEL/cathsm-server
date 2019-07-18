@@ -43,6 +43,9 @@ done
 python3 manage.py makemigrations
 python3 manage.py migrate
 
+# Install static files
+python3 manage.py collectstatic --noinput
+
 # create root account for Django admin page
 >&2 echo "Create superuser for the database"
 python3 manage.py shell << END 
