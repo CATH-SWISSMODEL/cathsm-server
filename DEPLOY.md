@@ -1,4 +1,5 @@
 
+```
 # https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-centos-7
 
 sudo yum install python36 git redis nginx postgresql  postgresql-contrib postgresql-devel
@@ -78,3 +79,4 @@ sudo cp $APPDIR/deploy/etc/systemd/system/gunicorn.service /etc/systemd/system/
 
 sudo systemctl start gunicorn
 sudo systemctl enable gunicorn
+```
