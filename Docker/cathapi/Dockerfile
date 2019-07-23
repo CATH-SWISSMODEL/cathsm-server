@@ -53,3 +53,9 @@ RUN /bin/mkdir /static
 # after every start of the container.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
+
+RUN adduser --system --ingroup users cathapi && \
+    chown -R cathapi:users /static && \
+    chown -R cathapi:users $SRC_DIR
+
+USER cathapi:users
