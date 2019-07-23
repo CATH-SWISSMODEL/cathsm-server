@@ -1,4 +1,4 @@
-FROM redis:5.0.5
+FROM redis:5.0.5-alpine
 
 # Find info about the base container at https://www.dockerheart.com/_/redis.
 
@@ -16,4 +16,7 @@ FROM redis:5.0.5
 
 # Adding our own config, inspired by https://www.dockerheart.com/_/redis
 COPY redis.conf /redis.conf
+
+USER redis
+
 CMD ["redis-server", "/redis.conf"]
