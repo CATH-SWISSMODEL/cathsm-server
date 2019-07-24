@@ -44,8 +44,15 @@ RUN /bin/date | /usr/bin/md5sum > secret_key.txt
 
 COPY Docker/cathapi/entrypoint.sh $SRC_DIR
 
-# Create directory for static files
-RUN /bin/mkdir /static
+# Create dedicated user
+RUN adduser --system --ingroup users cathapi && \
+    # Create directory for static files
+    /bin/mkdir /static && \
+    chown -R cathapi:users /static && \
+    # grant dedicated user access to code
+    chown -R cathapi:users $SRC_DIR
+
+USER cathapi:users
 
 # The following lets Python write to STDOUT without buffering and prevents
 # Python byte-compilation. We do not want *.pyc files generated at run-time,
@@ -53,9 +60,3 @@ RUN /bin/mkdir /static
 # after every start of the container.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
-
-RUN adduser --system --ingroup users cathapi && \
-    chown -R cathapi:users /static && \
-    chown -R cathapi:users $SRC_DIR
-
-USER cathapi:users
