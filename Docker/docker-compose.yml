@@ -31,15 +31,18 @@ services:
       dockerfile: Docker/cathapi/Dockerfile
     depends_on:
       - cathapi-redis
+      - postgres
     environment:
       - CATHAPI_DEBUG=CONTAINER
     volumes:
       - django-sqlite-db:/cathapi-data
       - www-static:/static
-    #command: /cathapi/entrypoint.sh python3 manage.py runserver 0.0.0.0:8000
     command: /cathapi/entrypoint.sh gunicorn cathapi.wsgi -b 0.0.0.0:8080
-    #ports:
-    #  - "8000:8000"
+
+  postgres:
+    restart: always
+    build:
+      context: ./postgres/
 
   nginx:
     restart: always
