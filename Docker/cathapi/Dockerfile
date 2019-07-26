@@ -46,6 +46,9 @@ COPY Docker/cathapi/entrypoint.sh $SRC_DIR
 
 # Create dedicated user
 RUN adduser --system --ingroup users cathapi && \
+    # Create volume mountpoint for the (still sqlite) database
+    /bin/mkdir /cathapi-data && \
+    chown -R cathapi:users /cathapi-data && \
     # Create directory for static files
     /bin/mkdir /static && \
     chown -R cathapi:users /static && \
