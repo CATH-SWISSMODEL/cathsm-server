@@ -26,6 +26,7 @@ RUN apt-get update && \
     # +81MB gcc
     gcc          \
     libc-dev     \
+    libpq5       \
     libpq-dev && \
     /bin/rm -rf /var/lib/apt/lists/* && \
 # Install Python dependencies
