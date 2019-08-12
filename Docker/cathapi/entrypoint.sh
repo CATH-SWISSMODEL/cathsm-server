@@ -37,7 +37,6 @@ db_conn = connections['default']
 try:
     db_conn.cursor()
 except OperationalError:
-    sys.stderr.write("Database not yet available.\n")
     sys.exit(1)
 except:
   raise
@@ -49,13 +48,21 @@ END
 # exit immediately on commands with a non-zero exit status.
 set -e
 
-# wait for Redis and set it up
+# wait for Redis
 >&2 echo "Wait for Redis"
 until redis_ready; do
     >&2 echo "Redis is not ready yet - sleep 1s"
     sleep 1
 done
 >&2 echo "Redis up and running"
+
+# wait for the database
+>&2 echo "Wait for database"
+until postgres_ready; do
+    >&2 echo "Database is not ready yet - sleep 1s"
+    sleep 1
+done
+>&2 echo "Database up and running"
 
 # Make sure the database is set up
 >&2 echo "Assure database is set up with tables"
@@ -70,6 +77,8 @@ python3 manage.py collectstatic --noinput
 python3 manage.py shell << END 
 from django.contrib.auth.models import User
 try:
+    User.objects.get(username='admin')
+except User.DoesNotExist:
     User.objects.create_superuser('admin', 'ad@m.in', 'admin')
 except Exception as dexc:
     if str(dexc) == 'UNIQUE constraint failed: auth_user.username':
