@@ -27,6 +27,25 @@ sys.exit(0)
 END
 }
 
+function postgres_ready(){
+python3 << END
+import sys
+import cathapi.wsgi
+from django.db import connections
+from django.db.utils import OperationalError
+db_conn = connections['default']
+try:
+    db_conn.cursor()
+except OperationalError:
+    sys.stderr.write("Database not yet available.\n")
+    sys.exit(1)
+except:
+  raise
+  sys.exit(2)
+sys.exit(0)
+END
+}
+
 # exit immediately on commands with a non-zero exit status.
 set -e
 
