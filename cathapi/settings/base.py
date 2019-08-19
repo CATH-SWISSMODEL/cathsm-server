@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 
 import logging.config  # pylint: disable=C0413,C0411
 import os
+
+from django.core.management.utils import get_random_secret_key
+
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
@@ -31,8 +34,11 @@ for secret_dir in [BASE_DIR, '/etc']:
         continue
 
 if not SECRET_KEY:
-    raise FileNotFoundError(
-        'failed to get SECRET_KEY from local file, tried: {}'.format(", ".join(secret_files)))
+    SECRET_KEY = get_random_secret_key()
+    # raise FileNotFoundError(
+    #     'failed to get SECRET_KEY from local file, tried: {}'.format(", ".join(secret_files)))
+
+
 
 del secret_files
 
