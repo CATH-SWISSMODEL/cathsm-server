@@ -8,12 +8,25 @@ required for the CATH-SM (CATH/SWISS-MODEL) protein sequence modelling pipeline.
 
 ## Overview
 
+This code provides a Django server that manages a protein structural modelling pipeline
+via asynchronous web jobs to the CATH and SWISS-MODEL APIs. Local computation is carried
+out by a [Celery](http://www.celeryproject.org/) worker (with [Redis](https://redis.io/) 
+used as the cache/message broker).
+
+A public deployment can be found here:
+
+https://api01.cathdb.info
+
+## Local Install
+
+Overview:
+
 * Install dependencies
-* Create Python virtual environment
+* Setup Python environment
 * Start up Celery worker
 * Start up Django server
 
-## Dependencies
+### Install Dependencies
 
 Redis is used as a cache/message broker:
 
@@ -34,9 +47,9 @@ sudo systemctl start redis
 
 Note: PostgreSQL is used as the deployment database (which will also need to be installed and configured), however the development database uses the built-in SQLite.
 
-## Python environment
+### Setup Python environment
 
-### Install virtual environment
+#### Install virtual environment
 
 ```bash
 python3 -m venv venv
@@ -44,20 +57,13 @@ python3 -m venv venv
 pip install -e .
 ```
 
-### Run tests
+#### Run tests
 
 ```bash
 python3 -m pytest
 ```
 
-### Create a unique secret key
-
-```bash
-cd cathsm-server && source venv/bin/activate
-date | md5sum > secret_key.txt
-```
-
-### Update the local database
+#### Update the local database
 
 ```bash
 cd cathsm-server && source venv/bin/activate
@@ -65,20 +71,20 @@ python3 manage.py makemigrations
 python3 manage.py migrate
 ```
 
-## Start a Celery worker (to process jobs)
+### Start Celery worker (to process jobs)
 
 ```sh
 cd cathsm-server && source venv/bin/activate
 CATHAPI_DEBUG=1 celery -A cathapi worker
 ```
 
-## Start a local API server
+### Start server
 
 ```sh
 cd cathsm-server && source venv/bin/activate
 CATHAPI_DEBUG=1 python3 manage.py runserver
 ```
 
-An instance of **API1** should now be available at:
+An instance of `cathsm-server` should now be available at:
 
 http://127.0.0.1:8000/
