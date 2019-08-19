@@ -38,7 +38,7 @@ Note: PostgreSQL is used as the deployment database (which will also need to be 
 
 ### Install virtual environment
 
-```
+```bash
 python3 -m venv venv
 . venv/bin/activate
 pip install -e .
@@ -46,20 +46,20 @@ pip install -e .
 
 ### Run tests
 
-```
-pytest
+```bash
+python3 -m pytest
 ```
 
 ### Create a unique secret key
 
-```sh
+```bash
 cd cathsm-server && source venv/bin/activate
 date | md5sum > secret_key.txt
 ```
 
 ### Update the local database
 
-```sh
+```bash
 cd cathsm-server && source venv/bin/activate
 python3 manage.py makemigrations
 python3 manage.py migrate
