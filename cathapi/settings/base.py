@@ -283,7 +283,6 @@ logging.config.dictConfig({
         'celery': {
             'level': LOG_LEVEL,
             'handlers': ['celery', 'console'],
-            'level': 'DEBUG',
         },
     }
 })
