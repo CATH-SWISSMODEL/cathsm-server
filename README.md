@@ -9,9 +9,11 @@ required for the CATH-SM (CATH/SWISS-MODEL) protein sequence modelling pipeline.
 ## Overview
 
 This code provides a Django server that manages a protein structural modelling pipeline
-via asynchronous web jobs to the CATH and SWISS-MODEL APIs. Local computation is carried
-out by a [Celery](http://www.celeryproject.org/) worker (with [Redis](https://redis.io/) 
-used as the cache/message broker).
+via asynchronous web jobs to [CATH](http://www.cathdb.info/search/by_sequence) and
+[SWISS-MODEL](https://beta.swissmodel.expasy.org/) APIs.
+
+Local computation is carried out by a [Celery](http://www.celeryproject.org/) worker
+(with [Redis](https://redis.io/) used as the cache/message broker).
 
 A public deployment can be found here:
 
@@ -45,7 +47,9 @@ sudo systemctl enable redis
 sudo systemctl start redis
 ```
 
-Note: PostgreSQL is used as the deployment database (which will also need to be installed and configured), however the development database uses the built-in SQLite.
+Note: PostgreSQL is used as the deployment database (which will also
+need to be installed and configured), however the development database
+uses the built-in SQLite.
 
 ### Setup Python environment
 
