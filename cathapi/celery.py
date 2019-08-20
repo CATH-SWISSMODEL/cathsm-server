@@ -1,7 +1,7 @@
-
 """
 Run tasks in the background with Celery
 """
+
 from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
@@ -29,4 +29,5 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
 @app.task(bind=True)
 def debug_task(self):
+    """Print debug messages"""
     print('Request: {0!r}'.format(self.request))
