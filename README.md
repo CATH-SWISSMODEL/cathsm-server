@@ -1,7 +1,9 @@
 
 # CATH-SM Server
 
-[![Build Status](https://travis-ci.com/CATH-SWISSMODEL/cath-swissmodel-api.svg?branch=master)](https://travis-ci.com/CATH-SWISSMODEL/cath-server)
+[![Build Status](https://travis-ci.org/CATH-SWISSMODEL/cathsm-server.svg?branch=master)](https://travis-ci.org/CATH-SWISSMODEL/cathsm-server)
+
+[![codecov](https://codecov.io/gh/CATH-SWISSMODEL/cathsm-server/branch/master/graph/badge.svg)](https://codecov.io/gh/CATH-SWISSMODEL/cathsm-server)
 
 This repository contains scripts and libraries for running the backend Django server
 required for the CATH-SM (CATH/SWISS-MODEL) protein sequence modelling pipeline.
