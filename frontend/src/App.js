@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import './App.css';
 
 import CssBaseline from '@material-ui/core/CssBaseline';
-import AppBar from './components/AppBar.js';
+import Container from '@material-ui/core/Container';
 import WorkFlow from './components/WorkFlow.js';
 
 class App extends Component {
@@ -10,8 +10,9 @@ class App extends Component {
     return (
       <div className="App">
         <CssBaseline />
-        <AppBar />
-        <WorkFlow />
+        <Container>
+          <WorkFlow />
+        </Container>
       </div>
     );
   }
