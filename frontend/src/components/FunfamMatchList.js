@@ -112,18 +112,18 @@ FunfamMatchTableHead.propTypes = {
 
 const toolbarStyles = theme => ({
   root: {
-    paddingRight: theme.spacing.unit
+    paddingRight: theme.spacing(1)
   },
   highlight:
     theme.palette.type === "light"
       ? {
-          color: theme.palette.secondary.main,
-          backgroundColor: lighten(theme.palette.secondary.light, 0.85)
-        }
+        color: theme.palette.secondary.main,
+        backgroundColor: lighten(theme.palette.secondary.light, 0.85)
+      }
       : {
-          color: theme.palette.text.primary,
-          backgroundColor: theme.palette.secondary.dark
-        },
+        color: theme.palette.text.primary,
+        backgroundColor: theme.palette.secondary.dark
+      },
   spacer: {
     flex: "1 1 100%"
   },
@@ -150,10 +150,10 @@ let FunfamMatchTableToolbar = props => {
             {numSelected} selected
           </Typography>
         ) : (
-          <Typography variant="h6" id="tableTitle">
-            Domain Matches
+            <Typography variant="h6" id="tableTitle">
+              Domain Matches
           </Typography>
-        )}
+          )}
       </div>
       <div className={classes.spacer} />
       <div className={classes.actions}>
@@ -164,12 +164,12 @@ let FunfamMatchTableToolbar = props => {
             </IconButton>
           </Tooltip>
         ) : (
-          <Tooltip title="Filter list">
-            <IconButton aria-label="Filter list">
-              <FilterListIcon />
-            </IconButton>
-          </Tooltip>
-        )}
+            <Tooltip title="Filter list">
+              <IconButton aria-label="Filter list">
+                <FilterListIcon />
+              </IconButton>
+            </Tooltip>
+          )}
       </div>
     </Toolbar>
   );
@@ -187,7 +187,7 @@ FunfamMatchTableToolbar = withStyles(toolbarStyles)(FunfamMatchTableToolbar);
 const styles = theme => ({
   root: {
     width: "100%",
-    marginTop: theme.spacing.unit * 1
+    marginTop: theme.spacing(1)
   },
   table: {
     minWidth: 1020
