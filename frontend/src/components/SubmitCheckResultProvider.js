@@ -118,6 +118,11 @@ class SubmitCheckResultProvider extends Component {
     if (this.props.onCheckResponse) {
       this.props.onCheckResponse(checkResponse);
     }
+    const error = this.props.isErrorFromCheck(checkResponse);
+    if (error) {
+      this.setState({ completed: true, error: true, message: "Error: " + error });
+      return;
+    }
     const complete = this.props.isCompleteFromCheck(checkResponse);
     if (complete) {
       this.setState({ completed: true, message: "Complete" });
@@ -237,6 +242,7 @@ SubmitCheckResultProvider.propTypes = {
   checkMaxAttempts: PropTypes.number.isRequired,
   taskIdFromSubmit: PropTypes.func.isRequired,
   isCompleteFromCheck: PropTypes.func.isRequired,
+  isErrorFromCheck: PropTypes.func.isRequired,
 
   onError: PropTypes.func.isRequired,
   onSubmitResponse: PropTypes.func,
