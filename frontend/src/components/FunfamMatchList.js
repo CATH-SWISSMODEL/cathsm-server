@@ -12,7 +12,7 @@ import TableSortLabel from "@material-ui/core/TableSortLabel";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
-import Button from "@material-ui/core/Button";
+//import Button from "@material-ui/core/Button";
 import Badge from "@material-ui/core/Badge";
 import Chip from "@material-ui/core/Chip";
 import IconButton from "@material-ui/core/IconButton";
@@ -328,7 +328,7 @@ class FunfamMatchList extends React.Component {
                       <TableCell>
                         <ScanMatchFigure
                           width={250}
-                          residueLength={querySequence.length}
+                          sequenceLength={querySequence.length}
                           segments={n.segments}
                         />
                       </TableCell>
