@@ -1,4 +1,4 @@
-version: "3.3"
+version: "3.5"
 
 # Build all images:
 #
@@ -8,9 +8,46 @@ version: "3.3"
 #
 # $ docker-compose -f Docker/docker-compose.yml up
 #
+# Please note: Environment variables used by this Docker Compose setup are
+#              spawned from a '.env' file. This file needs to be in the same
+#              directory as the docker-compose command is run. Variables in this
+#              file are defined by '<VARIABLE NAME>=<VALUE>'. Variables needed
+#              are:
+#                POSTGRES_PASSWORD - password for the superuser of Postgres, not
+#                                    the password of the Django user accessing
+#                                    the database
+#                POSTGRES_DB - name of the database that will be created for
+#                              the CATH-SM-API
+#                DJANGO_DB_USR - dedicated datbase user for the Django app,
+#                                postgres will create it in the database on
+#                                first startup, Django uses it to log into the
+#                                database
+#                DJANGO_DB_PW - Password for the dedicated database user as
+#                               scram-sha-256 hash. to generate a hash for a
+#                               password, set up a mock-up PostgreSQL database,
+#                               set encryption to scram-sha-256 and create a
+#                               user with DJANGO_DB_USR and DJANGO_DB_CLR_PW.
+#                               Then run
+#                               `select usename,passwd from PG_SHADOW;`.
+#                DJANGO_DB_CLR_PW - Cleartext password for the dedicated
+#                                   database user
+#                DJANGO_DB_ADMIN_USR - the administrative user for Django, the
+#                                      one which would normally go into
+#                                      `manage.py createsuperuser`
+#                DJANGO_DB_ADMIN_PW - password for the Django superuser
+#                DJANGO_DB_ADMIN_ML - mail address for the Django superuser
+#                CATHSMAPI_CODEBASE - there is a default for that one, it
+#                                     switches between using a local checkout
+#                                     of the Git repository or fetch a new one
+#                                     to build images; 'fromlocal' (the default)
+#                                     uses the local checkout, 'fromgitrepo'
+#                                     clones the repo during build.
+#                CATHSMAPI_GITTAG - If CATHSMAPI_CODEBASE=fromgitrepo,
+#                                   determines the branch/ tag to be used from
+#                                   the Git repository
 
 volumes:
-  django-sqlite-db:
+  db-store:
   www-static:
   www-logs:
 
@@ -29,13 +66,21 @@ services:
     build:
       context: ../
       dockerfile: Docker/cathapi/Dockerfile
+      args:
+        - CATHSMAPI_CODEBASE=$CATHSMAPI_CODEBASE
+        - CATHSMAPI_GITTAG=$CATHSMAPI_GITTAG
     depends_on:
       - cathapi-redis
       - postgres
     environment:
       - CATHAPI_DEBUG=CONTAINER
+      - POSTGRES_DB=$POSTGRES_DB
+      - DJANGO_DB_ADMIN_USR=$DJANGO_DB_ADMIN_USR
+      - DJANGO_DB_ADMIN_PW=$DJANGO_DB_ADMIN_PW
+      - DJANGO_DB_ADMIN_ML=$DJANGO_DB_ADMIN_ML
+      - DJANGO_DB_USR=$DJANGO_DB_USR
+      - DJANGO_DB_CLR_PW=$DJANGO_DB_CLR_PW
     volumes:
-      - django-sqlite-db:/cathapi-data
       - www-static:/static
     command: /cathapi/entrypoint.sh gunicorn cathapi.wsgi -b 0.0.0.0:8080
 
@@ -43,6 +88,22 @@ services:
     restart: always
     build:
       context: ./postgres/
+      # Increase /dev/shm as hinted by the Docker Library page for Postgres
+      # https://github.com/docker-library/docs/tree/master/postgres/
+      # "shm_size" needs Docker-Compose v.3.5, before this file was 3.3.
+      shm_size: '256MB'
+    environment:
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_DB=$POSTGRES_DB
+      - DJANGO_DB_USR=$DJANGO_DB_USR
+      - DJANGO_DB_PW=$DJANGO_DB_PW
+      - POSTGRES_INITDB_ARGS=--auth=scram-sha-256
+    volumes:
+      - db-store:/var/lib/postgresql/data/
+    entrypoint:
+      - docker-entrypoint.sh
+      - -c
+      - 'config_file=/postgresql.conf'
 
   nginx:
     restart: always
@@ -61,8 +122,16 @@ services:
     build:
       context: ../
       dockerfile: Docker/cathapi/Dockerfile
+      args:
+        - CATHSMAPI_CODEBASE=$CATHSMAPI_CODEBASE
+        - CATHSMAPI_GITTAG=$CATHSMAPI_GITTAG
     depends_on:
       - cathapi-redis
     environment:
       - CATHAPI_DEBUG=CONTAINER
+      - I_AM_CELERY=1
     command: celery -A cathapi worker
+
+#  LocalWords:  env DJANGO USR Django py createsuperuser CATHSMAPI CODEBASE
+#  LocalWords:  fromlocal fromgitrepo repo GITTAG sha PostgreSQL CLR usename
+#  LocalWords:  passwd

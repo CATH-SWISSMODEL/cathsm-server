@@ -1,4 +1,5 @@
-FROM python:3.7.3-slim-stretch
+ARG CATHSMAPI_CODEBASE=fromlocal
+FROM python:3.7.4-slim-buster as cath_sm_api_basis
 
 # To build it outside of docker-compose, in the toplevel directory of the repository,
 # run:
@@ -8,13 +9,44 @@ FROM python:3.7.3-slim-stretch
 # where
 # - "-t cathapi" just defines a name/ tag
 #
+# By default, the images is created using a local checkout of the Git repo. To
+# let Docker check out the repo for you during build time, start the build
+# command using `--build-arg CATHSMAPI_CODEBASE=fromgitrepo`.
+#
 # Be aware: some (secret) environment variables are passed by an .env file
 #           this is copied here from cathapi/Docker/cathapi/.env .
 
-# Get API code inside the image
 ENV SRC_DIR="/cathapi"
-RUN /bin/mkdir $SRC_DIR
-COPY ./ $SRC_DIR
+
+# Get API code inside the image - we can either use a local checkout of the
+# Git repository by using CATHSMAPI_CODEBASE=fromlocal or check out the Git repo
+# during build time by CATHSMAPI_CODEBASE=fromgitrepo. Due to the use of the
+# "ONBUILD" instruction, copying files from the Docker build context OR
+# checkout of the Git repo is ONLY executed on what ever
+# "FROM build_${CATHSMAPI_CODEBASE}" calls. That is, if you want to build
+# containers and just have this Dockerfile lying around in your home directory,
+# no files from your hard drive will be copied inside the image.
+FROM cath_sm_api_basis as build_fromlocal
+ONBUILD RUN /bin/mkdir $SRC_DIR
+ONBUILD COPY ./ $SRC_DIR
+
+FROM cath_sm_api_basis as build_fromgitrepo
+ONBUILD RUN apt-get update && \
+            apt-get install -y --no-install-recommends \
+            git && \
+            /bin/rm -rf /var/lib/apt/lists/* && \
+            /usr/bin/git clone https://github.com/bienchen/cath-swissmodel-api.git \
+                               /tmp/cath-swissmodel-api.git && \
+            if test -z "$CATHSMAPI_GITTAG"; then \
+              cd /tmp/cath-swissmodel-api.git/cathapi && \
+              git checkout $CATHSMAPI_GITTAG && \
+              cd /; \
+            fi && \
+            /bin/mv /tmp/cath-swissmodel-api.git/cathapi $SRC_DIR && \
+            /bin/rm -rf rm /tmp/cath-swissmodel-api.git && \
+            apt-get purge -y --auto-remove git
+
+FROM build_${CATHSMAPI_CODEBASE}
 
 WORKDIR $SRC_DIR
 
@@ -47,8 +79,6 @@ RUN /bin/date | /usr/bin/md5sum > secret_key.txt
 
 COPY Docker/cathapi/entrypoint.sh $SRC_DIR
 
-COPY Docker/cathapi/.env $SRC_DIR
-
 # Create dedicated user
 RUN adduser --system --ingroup users cathapi && \
     # Create volume mountpoint for the (still sqlite) database
@@ -68,3 +98,5 @@ USER cathapi:users
 # after every start of the container.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
+
+# LocalWords:  repo arg CATHSMAPI CODEBASE fromgitrepo fromlocal ONBUILD

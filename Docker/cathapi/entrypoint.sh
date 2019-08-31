@@ -74,12 +74,15 @@ python3 manage.py collectstatic --noinput
 
 # create root account for Django admin page
 >&2 echo "Create superuser for the database"
-python3 manage.py shell << END 
+python3 manage.py shell << END
+import os
 from django.contrib.auth.models import User
 try:
-    User.objects.get(username='admin')
+    User.objects.get(username=os.environ['DJANGO_DB_ADMIN_USR'])
 except User.DoesNotExist:
-    User.objects.create_superuser('admin', 'ad@m.in', 'admin')
+    User.objects.create_superuser(os.environ['DJANGO_DB_ADMIN_USR'],
+                                  os.environ['DJANGO_DB_ADMIN_ML'],
+                                  os.environ['DJANGO_DB_ADMIN_PW'])
 except Exception as dexc:
     if str(dexc) == 'UNIQUE constraint failed: auth_user.username':
         pass
