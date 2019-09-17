@@ -1,95 +1,151 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
-<div class="d-flex justify-content-center">
-  <div id="cathsm-stepper" class="bs-stepper">
-    <div class="bs-stepper-header" role="tablist">
-      <!-- your steps here -->
-      <div class="step" data-target="#submit-sequence-part">
-        <button type="button" class="step-trigger" role="tab" aria-controls="submit-sequence-part"
-          id="submit-sequence-part-trigger">
-          <span class="bs-stepper-circle">1</span>
-          <span class="bs-stepper-label">Submit Sequence</span>
-        </button>
-      </div>
-      <div class="line"></div>
-      <div class="step" data-target="#select-template-part">
-        <button type="button" class="step-trigger" role="tab" aria-controls="select-template-part"
-          id="select-template-part-trigger">
-          <span class="bs-stepper-circle">2</span>
-          <span class="bs-stepper-label">Select Template</span>
-        </button>
-      </div>
-      <div class="line"></div>
-      <div class="step" data-target="#view-model-part">
-        <button type="button" class="step-trigger" role="tab" aria-controls="view-model-part"
-          id="view-model-part-trigger">
-          <span class="bs-stepper-circle">3</span>
-          <span class="bs-stepper-label">View Model</span>
-        </button>
-      </div>
+
+
+<!-- Masthead -->
+<header class="masthead bg-primary text-white text-center">
+  <div class="container d-flex align-items-center flex-column">
+
+    <!-- Masthead Heading -->
+    <h1 class="masthead-heading text-uppercase mb-0">CathSM</h1>
+
+    <!-- Icon Divider -->
+    <div class="divider-custom divider-light">
+      <div class="divider-custom-line"></div>
     </div>
-    <div class="bs-stepper-content">
-      <!-- Submit Sequence -->
-      <div id="submit-sequence-part" class="content fade" role="tabpanel"
-        aria-labelledby="submit-sequence-part-trigger">
-        <form class="needs-validation" novalidate>
-          <div class="form-group">
-            <label for="input-sequence-id">Sequence ID</label>
-            <input type="text" class="form-control" id="input-sequence-id"
-              placeholder="Enter a name/id for your sequence" required>
-            <div class="invalid-feedback">Please enter a name for your sequence</div>
-            <small id="input-sequence-id-help" class="form-text text-muted">
-              If you copy/paste a FASTA formatted sequence in the box below, this field will be filled in
-              automatically.</small>
-          </div>
-          <div class="form-group">
-            <label for="input-sequence">Sequence</label>
-            <textarea rows="5" class="form-control" id="input-sequence"
-              placeholder="Enter the sequence as a string of amino acids" required
-              pattern="[GPAVLIMCFYWHKRQNEDST]+"></textarea>
-            <div class="invalid-feedback">Please enter a valid amino-acid sequence</div>
-            <small id="input-sequence-help" class="form-text text-muted">Copy and paste sequence as a string of
-              amino-acids (or FASTA format).</small>
-          </div>
 
-          <div class="example-data">
-            <button type="button" class="btn btn-link example-sequence" data-sequence-id="A0A0Q0Y989"
-              data-sequence="MNDFHRDTWAEVDLDAIYDNVANLRRLLPDDTHIMAVVKANAYGHGDVQVARTALEAGASRLAVAFLDEALALREKGIEAPILVLGASRPADAALAAQQRIALTVFRSDWLEEASALYSGPFPIHFHLKMDTGMGRLGVKDEEETKRIVALIERHPHFVLEGVYTHFATADEVNTDYFSYQYTRFLHMLEWLPSRPPLVHCANSAASLRFPDRTFNMVRFGIAMYGLAPSPGIKPLLPYPLKEAFSLHSRLVHVKKLQPGEKVSYGATYTAQTEEWIGTIPIGYADGWLRRLQHFHVLVDGQKAPIVGRICMDQCMIRLPGPLPVGTKVTLIGRQGDEVISIDDVARHLETINYEVPCTISYRVPRIFFRHKRIMEVRNAIGRGESSA">Example
-              1</button>
-          </div>
+    <!-- Masthead Subheading -->
+    <p class="masthead-subheading font-weight-light mb-0">
+      Connecting web services from CATH and SWISS-MODEL <br>
+      to generate 3D models from protein sequences.
+    </p>
 
-          <div class="step-actions d-flex justify-content-center">
-            <button class="btn btn-lg btn-inactive" type="reset">Clear</button>
-            <button class="btn btn-lg btn-primary btn-inactive" type="submit">Next</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Select Template -->
-      <div id="select-template-part" class="content fade" role="tabpanel"
-        aria-labelledby="select-template-part-trigger">
-        <div class="step-content">
-          Select template content
-        </div>
-        <div class="step-actions d-flex justify-content-center">
-          <button class="btn btn-lg btn-inactive" data-action="back">Back</button>
-          <button class="btn btn-lg btn-inactive" data-action="next">Next</button>
-        </div>
-      </div>
-
-      <!-- View Model -->
-      <div id="view-model-part" class="content fade" role="tabpanel" aria-labelledby="view-model-part-trigger">
-        <div class="step-content">
-          View model content
-        </div>
-        <div class="step-actions d-flex justify-content-center">
-          <button class="btn btn-lg btn-inactive" data-action="back">Back</button>
-        </div>
-      </div>
+    <!-- About Section Button -->
+    <div class="text-center mt-4">
+      <a class="btn btn-xl btn-outline-light js-scroll-trigger" href="#model">
+        <i class="fas fa-play mr-2"></i>
+        Try it out
+      </a>
+      <a class="btn btn-xl btn-outline-light js-scroll-trigger" href="#about">
+        <i class="fas fa-question mr-2"></i>
+        Find out more
+      </a>
     </div>
+
   </div>
-</div>
+</header>
 
-<div id="stepper-status" class="alert"></div>
+<!-- Model Section -->
+<section class="page-section pipeline" id="pipeline">
+  <div class="container">
+
+    <!-- Model Section Heading -->
+    <h2 class="page-section-heading text-center text-uppercase text-secondary mb-0">Pipeline</h2>
+
+    <!-- Icon Divider -->
+    <div class="divider-custom">
+      <div class="divider-custom-line"></div>
+    </div>
+
+    <!-- Model Grid Items -->
+
+    <!-- Masthead Subheading -->
+    <h4 class="font-weight-light text-center mb-4">
+      The <span class="code">cathsm</span> modelling pipeline can be accessed via:
+    </h4>
+
+    <div class="row">
+      <div class="col-lg-6 align-content-center ml-auto">
+        <h4>CLI (Python script and libraries)</h4>
+        <a href="https://github.com/CATH-SWISSMODEL/cathsm-client"><img
+            src="{% static 'cathapi/img/cathsm-client-cli.gif' %}" class="img-thumbnail"></a>
+        <a class="btn" href="https://github.com/CATH-SWISSMODEL/cathsm-client"><i class="fab fa-fw fa-github"></i>
+          CATH-SWISSMODEL/cathsm-client</a>
+      </div>
+      <div class="col-lg-6 justify-content-center ml-auto">
+        <h4>Web (ReactJS) <small>(under development)</small></h4>
+        <img src="{% static 'cathapi/img/cathsm-reactjs.png' %}" class="img-thumbnail">
+        <a class="btn" href="https://github.com/CATH-SWISSMODEL/cathsm-reactjs"><i class="fab fa-fw fa-github"></i>
+          CATH-SWISSMODEL/cathsm-reactjs</a>
+      </div>
+    </div>
+
+    <!-- /.row -->
+
+  </div>
+</section>
+
+<!-- About Section -->
+<section class="page-section bg-primary text-white mb-0" id="about">
+  <div class="container">
+
+    <!-- About Section Heading -->
+    <h2 class="page-section-heading text-center text-uppercase text-white">About</h2>
+
+    <!-- Icon Divider -->
+    <div class="divider-custom divider-light">
+      <div class="divider-custom-line"></div>
+    </div>
+
+    <!-- About Section Content -->
+    <div class="row mb-4">
+      <div class="col-lg-6 ml-auto">
+        <h4>CATH</h4>
+        <p>CATH is a classification of protein structures that groups
+          protein domains into superfamilies when there is sufficient evidence
+          they have diverged from a common ancestor. This
+          information can be used to provide unique insights into relationships
+          between protein sequence, structure and function.</p>
+        <a class="btn btn-sm btn-outline-light" href="https://cathdb.info">
+          <i class="fas fa-external-link-alt mr-2"></i>
+          Visit CATH
+        </a>
+      </div>
+      <div class="col-lg-6 mr-auto">
+        <h4>SWISS-MODEL</h4>
+        <p>SWISS-MODEL is a fully automated protein structure homology-modelling
+          server, accessible via the ExPASy web server, or from the program
+          DeepView (Swiss Pdb-Viewer). The purpose of this server is to make
+          protein modelling accessible to all life science researchers
+          worldwide.</p>
+        <a class="btn btn-sm btn-outline-light" href="https://swissmodel.expasy.org">
+          <i class="fas fa-external-link-alt mr-2"></i>
+          Visit SWISS-MODEL
+        </a>
+      </div>
+    </div>
+    <div class="row mb-4">
+      <div class="col-lg-6 ml-auto">
+        <h4>InterPro</h4>
+        <p>InterPro provides functional analysis of proteins by classifying them into families and predicting domains
+          and important sites. To classify proteins in this way, InterPro uses predictive models, known as signatures,
+          provided by several different databases (referred to as member databases) that make up the InterPro
+          consortium. We combine protein signatures from these member databases into a single searchable resource,
+          capitalising on their individual strengths to produce a powerful integrated database and diagnostic tool.</p>
+        <a class="btn btn-sm btn-outline-light" href="https://www.ebi.ac.uk/interpro">
+          <i class="fas fa-external-link-alt mr-2"></i>
+          Visit InterPro
+        </a>
+      </div>
+      <div class="col-lg-6 ml-auto">
+        <h4>PDBe</h4>
+        <p>PDBe is a founding member of the Worldwide Protein Data Bank which collects, organises and disseminates data
+          on biological macromolecular structures. In collaboration with the other Worldwide Protein Data Bank (wwPDB)
+          partners, we work to collate, maintain and provide access to the global repository of macromolecular structure
+          models, the Protein Data Bank (PDB).</p>
+        <a class="btn btn-sm btn-outline-light" href="https://www.ebi.ac.uk/pdbe">
+          <i class="fas fa-external-link-alt mr-2"></i>
+          Visit PDBe
+        </a>
+      </div>
+    </div>
+
+    <!-- About Section Button -->
+    <div class="text-center mt-4">
+    </div>
+
+  </div>
+</section>
 
 {% endblock %}
