@@ -35,15 +35,15 @@ ONBUILD RUN apt-get update && \
             apt-get install -y --no-install-recommends \
             git && \
             /bin/rm -rf /var/lib/apt/lists/* && \
-            /usr/bin/git clone https://github.com/bienchen/cath-swissmodel-api.git \
-                               /tmp/cath-swissmodel-api.git && \
+            /usr/bin/git clone https://github.com/CATH-SWISSMODEL/cathsm-server.git \
+                               /tmp/cathsm-server.git && \
             if test -z "$CATHSMAPI_GITTAG"; then \
-              cd /tmp/cath-swissmodel-api.git/cathapi && \
+              cd /tmp/cathsm-server.git/cathapi && \
               git checkout $CATHSMAPI_GITTAG && \
               cd /; \
             fi && \
-            /bin/mv /tmp/cath-swissmodel-api.git/cathapi $SRC_DIR && \
-            /bin/rm -rf rm /tmp/cath-swissmodel-api.git && \
+            /bin/mv /tmp/cathsm-server.git $SRC_DIR && \
+            /bin/rm -rf rm /tmp/cathsm-server.git && \
             apt-get purge -y --auto-remove git
 
 FROM build_${CATHSMAPI_CODEBASE}

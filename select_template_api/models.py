@@ -157,7 +157,7 @@ class SelectTemplateHit(models.Model):
 
         if len(scan_hit.hsps) > 1:
             raise err.DiscontinuousDomainError("""
-                Hit '{}' has more than one ({}) HSPs, which means it is probably a 
+                Hit '{}' has more than one HSPs ({}), which means it is probably a 
                 discontinuous domain (this pipeline is not currently able to process 
                 discontinuous domains).
                 """.format(scan_hit.match_name, len(scan_hit.hsps)))
@@ -219,7 +219,7 @@ class SelectTemplateHit(models.Model):
                 'No CATH domains found in FunFam alignment: {}'.format(funfam_id))
             return select_template_hit
 
-        LOG.info('Found %s CATH domains in alignments', len(dom_seqs))
+        LOG.info('Found %s CATH domains in alignment', len(dom_seqs))
 
         select_rep = SelectBlastRep(align=ff_aln, ref_seq=query_range_sequence)
         best_hit = select_rep.get_best_blast_hit(
@@ -376,9 +376,9 @@ class SelectTemplateTask(models.Model):
         self.save()
         return is_remote_complete
 
-    def create_resolved_hits(self):
+    def create_hits(self, use_resolved_scan=False):
         """
-        Creates :class:`SelectTemplateHit` entries for the resolved funfam scan
+        Creates :class:`SelectTemplateHit` entries for the funfam scan data
         """
 
         if not self.results_json:
@@ -387,7 +387,7 @@ class SelectTemplateTask(models.Model):
         try:
             results_data = json.loads(self.results_json)
             cath_version = results_data['cath_version']
-            scan_data = results_data['funfam_resolved_scan']
+            scan_data = results_data['funfam_resolved_scan'] if use_resolved_scan else results_data['funfam_scan']
             scan = Scan(**scan_data)
         except:
             raise err.ParseDataError("Failed to parse 'results_json' (scan: {}): {}".format(
@@ -399,21 +399,42 @@ class SelectTemplateTask(models.Model):
                 len(scan.results), scan))
 
         result = scan.results[0]
+        scan_hits_with_structure = [
+            h for h in result.hits if 'rep_source_id' in h.data and h.data['rep_source_id'] == 'cath']
+        LOG.info(("Found %s regions in the query sequence that match CATH FunFams,"
+                  " %d of those FunFams have a representative CATH domain structure."), len(
+            result.hits), len(scan_hits_with_structure))
+
         hits = []
-        LOG.info("Found %s regions in the query sequence that match CATH FunFams", len(
-            result.hits))
-        for scan_hit in result.hits:
+        for hit_idx, scan_hit in enumerate(scan_hits_with_structure):
+            LOG.info("Working on hit [%d of %d] %s: %s ... ",
+                     hit_idx, len(result.hits), scan_hit.match_name, scan_hit.match_description)
+
             query_range = ','.join(
                 ['{}-{}'.format(hsp.query_start, hsp.query_end) for hsp in scan_hit.hsps])
             LOG.info("Adding SelectTemplateHit for best structural match in region %s: funfam=%s",
                      query_range, scan_hit.match_name)
-            hit = SelectTemplateHit.create_from_scan_hit(
-                scan_hit=scan_hit,
-                cath_version=cath_version,
-                task_uuid=self.uuid,
-                is_resolved_hit=True)
-            hit.save()
-            hits.extend([hit])
+
+            hit = None
+            err_msg = None
+            try:
+                hit = SelectTemplateHit.create_from_scan_hit(
+                    scan_hit=scan_hit,
+                    cath_version=cath_version,
+                    task_uuid=self.uuid,
+                    is_resolved_hit=use_resolved_scan)
+            except err.NoDomainsError:
+                err_msg = "no valid domains"
+            except err.NoStructureDomainsError:
+                err_msg = "no structural domains"
+            except err.DiscontinuousDomainError:
+                err_msg = "contains only discontinuous domains"
+
+            if hit:
+                hit.save()
+                hits.extend([hit])
+            else:
+                LOG.warn("cannot create hit %s: %s", scan_hit, err_msg)
 
         self.message = "Created {} hits".format(len(hits))
         self.save()

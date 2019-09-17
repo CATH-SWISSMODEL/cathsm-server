@@ -7,30 +7,29 @@ const styles = theme => ({
     position: "relative",
     display: "block",
     height: 2,
-    "background-color": "#ddd"
+    "background-color": "#ddd",
   },
-  hsp: {
+  match: {
     height: 7,
     position: "absolute",
-    "background-color": "#c00"
+    "background-color": "#c00",
   }
 });
 
 class ScanMatchFigure extends React.Component {
   render() {
-    const { classes, width, residueLength, segments } = this.props;
-    const resPerPixel = residueLength / width;
+    const { classes, width, sequenceLength, segments } = this.props;
+    const pixelsPerRes = width / sequenceLength;
     const style = { width };
-
+    console.log('width', width, 'sequenceLength', sequenceLength, 'pixelsPerRes', pixelsPerRes);
     return (
       <div className={classes.root} style={style}>
         {segments.map(n => {
           const { id, start, end } = n;
-          const w = (end - start) * resPerPixel;
-          const l = start * resPerPixel;
+          const w = (end - start) * pixelsPerRes;
+          const l = start * pixelsPerRes;
           const spanStyle = { width: w + "%", left: l + "%" };
-          console.log("ScanMatchFigure.style: ", n, spanStyle);
-          return <span key={id} style={spanStyle} />;
+          return <div key={id} className={classes.match} style={spanStyle} />;
         })}
       </div>
     );
@@ -43,7 +42,7 @@ ScanMatchFigure.defaultProps = {
 
 ScanMatchFigure.propTypes = {
   classes: PropTypes.object.isRequired,
-  residueLength: PropTypes.number.isRequired,
+  sequenceLength: PropTypes.number.isRequired,
   segments: PropTypes.array.isRequired,
   width: PropTypes.number.isRequired
 };

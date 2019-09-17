@@ -22,7 +22,7 @@ LOG = logging.getLogger(__name__)
 
 
 class SelectTemplateAlignmentsView(generics.ListAPIView):
-    """Generic view for non-resolved hits from template scan."""
+    """View all alignments to template structures."""
 
     serializer_class = SelectTemplateAlignmentSerializer
 
@@ -34,7 +34,7 @@ class SelectTemplateAlignmentsView(generics.ListAPIView):
 
 
 class SelectTemplateHitsView(generics.ListAPIView):
-    """Generic view for non-resolved hits from template scan."""
+    """View ALL regions of the query sequence that match CATH FunFams."""
 
     serializer_class = SelectTemplateHitSerializer
 
@@ -53,7 +53,7 @@ class SelectTemplateHitsView(generics.ListAPIView):
 
 
 class SelectTemplateResolvedHitsView(generics.ListAPIView):
-    """Generic view for resolved hits from template scan."""
+    """View RESOLVED regions of the query sequence that match CATH FunFams."""
 
     serializer_class = SelectTemplateHitSerializer
 
@@ -73,7 +73,7 @@ class SelectTemplateResolvedHitsView(generics.ListAPIView):
 
 
 class TemplateTasksView(object):
-    """Generic view for TemplateTask."""
+    """Generic view for TemplateTasks."""
 
     queryset = SelectTemplateTask.objects.all()
     serializer_class = SelectTemplateQuerySerializer
@@ -81,7 +81,7 @@ class TemplateTasksView(object):
 
 
 class SelectTemplateTasksCreateView(TemplateTasksView, generics.CreateAPIView):
-    """This class defines the create behavior of our rest api."""
+    """Create a new Template Task."""
 
     # https://stackoverflow.com/a/4581997/821642
     def get_client_ip(self):
@@ -130,13 +130,13 @@ class SelectTemplateTasksCreateView(TemplateTasksView, generics.CreateAPIView):
             return Response(serializer.errors, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class SelectTemplateTasksResultView(TemplateTasksView, generics.RetrieveAPIView):
-    """This class handles the http GET requests."""
-
-    serializer_class = SelectTemplateResultSerializer
-
-
 class SelectTemplateTasksStatusView(TemplateTasksView, generics.RetrieveDestroyAPIView):
-    """This class handles the http GET and DELETE requests."""
+    """View the current status of a Template Task."""
 
     serializer_class = SelectTemplateStatusSerializer
+
+
+class SelectTemplateTasksResultView(TemplateTasksView, generics.RetrieveAPIView):
+    """View the results of a Template Task."""
+
+    serializer_class = SelectTemplateResultSerializer

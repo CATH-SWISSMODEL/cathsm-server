@@ -48,11 +48,11 @@ def process_select_template_task(task_uuid):
         raise err.TaskInErrorStateError(
             'An error has occurred when processing this task: cannot continue')
 
-    LOG.info("CREATE_RESOLVED_HITS %s [status=%s]",
+    LOG.info("CREATE_HITS %s [status=%s]",
              select_template_task.uuid, select_template_task.status)
 
     try:
-        select_template_task.create_resolved_hits()
+        select_template_task.create_hits()
     except err.NoDomainsError as e:
         msg = 'found no valid structural domains: {}'.format(str(e))
         LOG.warning(msg)
@@ -60,8 +60,8 @@ def process_select_template_task(task_uuid):
         msg = 'found no results when searching query sequence'
         LOG.warning(msg)
     except Exception as e:
-        msg = 'encountered {} when trying to create resolved hits: {}'.format(
-            type(e), str(e)[:250])
+        msg = 'encountered {} when trying to create hits: {}'.format(
+            e.__class__.__name__, str(e)[:250])
         LOG.error(msg)
         select_template_task.status = models.STATUS_ERROR
         select_template_task.message = msg
