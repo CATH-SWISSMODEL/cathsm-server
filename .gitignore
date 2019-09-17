@@ -126,3 +126,4 @@ secret_key.txt
 # Emacs backup files
 \#*#
 \.\#*
+static/
