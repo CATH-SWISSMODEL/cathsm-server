@@ -6,33 +6,39 @@ import Step from "@material-ui/core/Step";
 import StepLabel from "@material-ui/core/StepLabel";
 import StepContent from "@material-ui/core/StepContent";
 import Button from "@material-ui/core/Button";
+import Card from "@material-ui/core/Card";
+import CardContent from "@material-ui/core/CardContent";
+import CardActions from "@material-ui/core/CardActions";
 import Paper from "@material-ui/core/Paper";
 import Typography from "@material-ui/core/Typography";
 
-import QuerySequence from "./QuerySequence.js";
+import QuerySequenceStep from "./QuerySequenceStep.js";
 import FunfamMatchList from "./FunfamMatchList.js";
 import ModelStructure from "./ModelStructure.js";
 import SubmitCheckResultProvider from "./SubmitCheckResultProvider.js";
 
 import { parseCathScanResponseData } from "../models/SearchScan.js";
 
-import DummyCathScanResults from "../models/test_data/CathScanResults.test.json"; 
+import DummyCathScanResults from "../models/test_data/CathScanResults.test.json";
 
-const STEP_QUERY=0, STEP_TEMPLATE=1, STEP_MODEL=2;
+const STEP_QUERY = 0, STEP_TEMPLATE = 1, STEP_MODEL = 2;
 
 const styles = theme => ({
   root: {
     width: "100%"
   },
+  stepContent: {
+    padding: theme.spacing(2),
+  },
   button: {
-    marginTop: theme.spacing.unit,
-    marginRight: theme.spacing.unit
+    marginTop: theme.spacing(1),
+    marginRight: theme.spacing(1),
   },
   actionsContainer: {
-    marginBottom: theme.spacing.unit * 2
+    marginBottom: theme.spacing(2)
   },
   resetContainer: {
-    padding: theme.spacing.unit * 3
+    padding: theme.spacing(2)
   }
 });
 
@@ -48,8 +54,8 @@ const STEPS_CONFIG = [
     resultClass: "SelectTemplateTable",
     providerClass: "SubmitCheckResultProvider",
     providerProps: {
-      apiBase: "http://localhost:8000/",
-      authTokenEndpoint: "api/api-auth-token/",
+      apiBase: "https://api01.cathdb.info/",
+      authTokenEndpoint: "api/api-token-auth/",
       submitEndpoint: "api/select-template/",
       checkEndpoint: "api/select-template/<id>/",
       resultEndpoint: "api/select-template/<id>/results",
@@ -58,6 +64,10 @@ const STEPS_CONFIG = [
       },
       isCompleteFromCheck: data => {
         return data["status"] === "success";
+      },
+      isErrorFromCheck: data => {
+        const msg = data["message"];
+        return data["status"] === "error" ? msg : false;
       },
       username: "apiuser",
       password: "apiuserpassword"
@@ -86,6 +96,9 @@ const STEPS_CONFIG = [
       isCompleteFromCheck: data => {
         return data["status"] === "success";
       },
+      isErrorFromCheck: data => {
+        return data["status"] === "error";
+      },
       username: "ian",
       password: "4cathuse"
     },
@@ -109,18 +122,24 @@ class WorkFlow extends React.Component {
       activeStep: 0,
       queryId: null,
       querySequence: null,
-      taskId: null,
+      templates: null,
+      templateTaskId: null,
+      hits: null,
+      templateHitId: null,
+      hitResult: null,
+      templateModelId: null,
+      modelResult: null,
       templateError: null,
       templateScanResult: null
     };
 
-    this.handleChangeSequence = this.handleChangeSequence.bind(this);
+    this.handleSubmitSequence = this.handleSubmitSequence.bind(this);
+
     this.handleTemplateError = this.handleTemplateError.bind(this);
     this.handleTemplateSubmit = this.handleTemplateSubmit.bind(this);
     this.handleTemplateCheck = this.handleTemplateCheck.bind(this);
     this.handleTemplateResult = this.handleTemplateResult.bind(this);
 
-    this.handleExampleSequence = this.handleExampleSequence.bind(this);
     this.handleExampleScanResults = this.handleExampleScanResults.bind(this);
 
     // this.handleModelError = this.handleModelError.bind(this);
@@ -129,9 +148,23 @@ class WorkFlow extends React.Component {
     // this.handleModelResult = this.handleModelResult.bind(this);
   }
 
-  handleChangeSequence(queryId, querySequence) {
-    console.log("Setting query sequence", queryId, querySequence);
-    this.setState({ queryId, querySequence });
+  handleSubmitSequence(ev, seq) {
+    console.log("Setting sequence: ", seq);
+    const queryId = seq.id;
+    const querySequence = seq.seq;
+    this.setState(state => {
+      return {
+        activeStep: STEP_TEMPLATE,
+        queryId: queryId,
+        querySequence: querySequence,
+        templateTaskId: null,
+        hits: null,
+        templateHitId: null,
+        hitResult: null,
+        templateModelId: null,
+        modelResult: null,
+      };
+    });
   }
 
   handleNext = e => {
@@ -157,12 +190,10 @@ class WorkFlow extends React.Component {
     const queryId = this.state.queryId;
     const querySeq = this.state.querySequence;
     return (
-      <QuerySequence
+      <QuerySequenceStep
         queryId={queryId}
         querySequence={querySeq}
-        onChange={this.handleChangeSequence}
-        onExampleScanResults={this.handleExampleScanResults}
-        onExampleSequence={this.handleExampleSequence}
+        onSubmit={this.handleSubmitSequence}
       />
     );
   }
@@ -184,20 +215,6 @@ class WorkFlow extends React.Component {
     console.log("handleTemplateCheck", data);
   }
 
-  handleExampleSequence() {
-    this.setState({
-
-    })
-  }
-
-  handleExampleScanResults() {
-    console.log("handleExampleScanResults", this);
-    this.setState({
-      activeStep: STEP_TEMPLATE,
-      templateScanResult: DummyCathScanResults,
-    });
-  }
-
   handleTemplateResult(rawdata) {
     console.log("handleTemplateResult", rawdata);
     const scan = this.parseTemplateResultData(rawdata);
@@ -208,6 +225,10 @@ class WorkFlow extends React.Component {
     }
     const scanResult = scan.results[0];
     this.setState({ templateScanResult: scanResult });
+  }
+
+  handleExampleScanResults(ev) {
+    console.log("handleExampleScanResults");
   }
 
   parseTemplateResultData(rawdata) {
@@ -268,55 +289,43 @@ class WorkFlow extends React.Component {
     const { classes } = this.props;
     const { activeStep } = this.state;
     const steps = [
-      { label: "Query Sequence", content: this.renderQuerySequence() },
-      { label: "Select Template", content: this.renderSelectTemplate() },
-      { label: "Model Structure", content: this.renderModelStructure() }
+      { label: "Submit Sequence", renderer: this.renderQuerySequence },
+      { label: "Select Template", renderer: this.renderSelectTemplate },
+      { label: "Model Structure", renderer: this.renderModelStructure },
     ];
+
+    const stepContent = steps[activeStep].renderer.bind(this)();
+
     return (
       <div className={classes.root}>
-        <Stepper activeStep={activeStep} orientation="vertical">
-          {steps.map((step, index) => {
-            const label = step["label"];
-            const stepContent = step["content"];
-            const nextId = "next" + step["tag"];
-            return (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-                <StepContent>
-                  {stepContent}
-                  <div className={classes.actionsContainer}>
-                    <div>
-                      <Button
-                        disabled={activeStep === 0}
-                        onClick={this.handleBack}
-                        className={classes.button}
-                      >
-                        Back
-                      </Button>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        key={nextId}
-                        onClick={this.handleNext}
-                        className={classes.button}
-                      >
-                        {activeStep === steps.length - 1 ? "Finish" : "Next"}
-                      </Button>
-                    </div>
-                  </div>
-                </StepContent>
-              </Step>
-            );
-          })}
-        </Stepper>
-        {activeStep === steps.length && (
-          <Paper square elevation={0} className={classes.resetContainer}>
-            <Typography>All steps completed - you&quot;re finished</Typography>
-            <Button onClick={this.handleReset} className={classes.button}>
-              Reset
-            </Button>
-          </Paper>
-        )}
+        <Card>
+          <CardContent>
+            <Stepper activeStep={activeStep} alternativeLabel>
+              {steps.map((step, index) => {
+                const label = step["label"];
+                const nextId = "next" + step["tag"];
+                return (
+                  <Step key={label}>
+                    <StepLabel>{label}</StepLabel>
+                  </Step>
+                );
+              })}
+            </Stepper>
+            <div className={classes.stepContent}>
+              {stepContent}
+            </div>
+          </CardContent>
+          <CardActions>
+            {activeStep === steps.length && (
+              <Paper square elevation={0} className={classes.resetContainer}>
+                <Typography>All steps completed - you&quot;re finished</Typography>
+                <Button onClick={this.handleReset} className={classes.button}>
+                  Reset
+                </Button>
+              </Paper>
+            )}
+          </CardActions>
+        </Card>
       </div>
     );
   }

@@ -115,7 +115,7 @@ SelectTemplateTableHead.propTypes = {
 
 const toolbarStyles = theme => ({
   root: {
-    paddingRight: theme.spacing.unit,
+    paddingRight: theme.spacing(1),
   },
   highlight:
     theme.palette.type === 'light'
@@ -188,7 +188,7 @@ SelectTemplateTableToolbar = withStyles(toolbarStyles)(SelectTemplateTableToolba
 const styles = theme => ({
   root: {
     width: '100%',
-    marginTop: theme.spacing.unit * 1,
+    marginTop: theme.spacing(1),
   },
   table: {
     minWidth: 1020,

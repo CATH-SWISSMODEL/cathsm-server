@@ -6,7 +6,8 @@ var QUERY = {
 (function ($) {
   "use strict"; // Start of use strict
 
-  var stepper = new Stepper($(".bs-stepper")[0], {
+  var stepperEl = document.getElementById('cathsm-stepper');
+  var stepper = new Stepper(stepperEl, {
     linear: false,
     animation: true,
   });
@@ -63,19 +64,62 @@ var QUERY = {
     // Do whatever with pasteddata
   };
 
-  var forms = document.getElementsByClassName('needs-validation');
-  // Loop over them and prevent submission
-  var validation = Array.prototype.filter.call(forms, function (form) {
-    form.addEventListener('submit', function (event) {
-      console.log('checking form for validity: ', form, event, form.checkValidity());
-      if (form.checkValidity() === false) {
-        event.preventDefault();
-        event.stopPropagation();
+
+  // https://stackoverflow.com/a/21311717/821642
+
+  function validateTextarea() {
+    console.log("validateTextarea", this);
+    var errorMsg = "Please match the format requested.";
+    var textarea = this;
+    var pattern = new RegExp('^' + $(textarea).attr('pattern') + '$');
+    // check each line of text
+    $.each($(this).val().split("\n"), function () {
+      // check if the line matches the pattern
+      var hasError = !this.match(pattern);
+      console.log("match: ", this, pattern, this.match(pattern), hasError);
+      if (typeof textarea.setCustomValidity === 'function') {
+        textarea.setCustomValidity(hasError ? errorMsg : '');
+      } else {
+        // Not supported by the browser, fallback to manual error display...
+        $(textarea).toggleClass('error', !!hasError);
+        $(textarea).toggleClass('ok', !hasError);
+        if (hasError) {
+          $(textarea).attr('title', errorMsg);
+        } else {
+          $(textarea).removeAttr('title');
+        }
       }
-      form.classList.add('was-validated');
+      return !hasError;
+    });
+  }
+
+  $('.example-sequence').on('click', function (event) {
+    var seq = $(this).data('sequence');
+    var seq_id = $(this).data('sequenceId');
+    $input_sequence.val(seq);
+    $input_sequence_id.val(seq_id);
+  })
+
+  // Loop over forms and apply our own validation (prevent auto submission)
+  var validateForm = function (event) {
+    var $form = $(this);
+    var formEl = $form[0];
+    console.log('checking form for validity: ', formEl, $form.find('textarea'), event, formEl.checkValidity());
+    $form.find('textarea[pattern]').each(validateTextarea);
+    if (formEl.checkValidity() === false) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    $form.addClass('was-validated');
+  };
+
+  $('form.needs-validation').each(function (idx, form) {
+    $(form).on('submit', function (event) {
+      validateForm(event);
     }, false);
   });
 
+  $input_sequence.on('change keyup', validateForm);
   $input_sequence.on('paste', handleSequencePaste);
 
   $('.bs-stepper form').submit(function (event) {
@@ -93,7 +137,7 @@ var QUERY = {
 
   };
 
-  stepper.addEventListener('shown.bs-stepper', function (event) {
+  stepperEl.addEventListener('shown.bs-stepper', function (event) {
     console.warn('step shown')
 
     switch (event.detail.indexStep) {

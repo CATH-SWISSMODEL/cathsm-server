@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="d-flex justify-content-center">
-  <div class="bs-stepper">
+  <div id="cathsm-stepper" class="bs-stepper">
     <div class="bs-stepper-header" role="tablist">
       <!-- your steps here -->
       <div class="step" data-target="#submit-sequence-part">
@@ -29,7 +29,6 @@
       </div>
     </div>
     <div class="bs-stepper-content">
-
       <!-- Submit Sequence -->
       <div id="submit-sequence-part" class="content fade" role="tabpanel"
         aria-labelledby="submit-sequence-part-trigger">
@@ -45,16 +44,23 @@
           </div>
           <div class="form-group">
             <label for="input-sequence">Sequence</label>
-            <textarea rows="10" class="form-control" id="input-sequence"
+            <textarea rows="5" class="form-control" id="input-sequence"
               placeholder="Enter the sequence as a string of amino acids" required
-              pattern="[^GPAVLIMCFYWHKRQNEDST\s]"></textarea>
+              pattern="[GPAVLIMCFYWHKRQNEDST]+"></textarea>
             <div class="invalid-feedback">Please enter a valid amino-acid sequence</div>
             <small id="input-sequence-help" class="form-text text-muted">Copy and paste sequence as a string of
               amino-acids (or FASTA format).</small>
           </div>
+
+          <div class="example-data">
+            <button type="button" class="btn btn-link example-sequence" data-sequence-id="A0A0Q0Y989"
+              data-sequence="MNDFHRDTWAEVDLDAIYDNVANLRRLLPDDTHIMAVVKANAYGHGDVQVARTALEAGASRLAVAFLDEALALREKGIEAPILVLGASRPADAALAAQQRIALTVFRSDWLEEASALYSGPFPIHFHLKMDTGMGRLGVKDEEETKRIVALIERHPHFVLEGVYTHFATADEVNTDYFSYQYTRFLHMLEWLPSRPPLVHCANSAASLRFPDRTFNMVRFGIAMYGLAPSPGIKPLLPYPLKEAFSLHSRLVHVKKLQPGEKVSYGATYTAQTEEWIGTIPIGYADGWLRRLQHFHVLVDGQKAPIVGRICMDQCMIRLPGPLPVGTKVTLIGRQGDEVISIDDVARHLETINYEVPCTISYRVPRIFFRHKRIMEVRNAIGRGESSA">Example
+              1</button>
+          </div>
+
           <div class="step-actions d-flex justify-content-center">
-            <button class="btn btn-lg btn-inactive" data-action="clear">Clear</button>
-            <button class="btn btn-lg btn-primary btn-inactive" data-action="next" type="submit">Next</button>
+            <button class="btn btn-lg btn-inactive" type="reset">Clear</button>
+            <button class="btn btn-lg btn-primary btn-inactive" type="submit">Next</button>
           </div>
         </form>
       </div>

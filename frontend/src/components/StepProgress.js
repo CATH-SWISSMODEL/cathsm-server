@@ -16,11 +16,11 @@ const styles = theme => ({
     alignItems: 'center',
   },
   wrapper: {
-    margin: theme.spacing.unit,
+    margin: theme.spacing(1),
     position: 'relative',
   },
 });
-  
+
 class StepProgress extends Component {
 
   constructor(props) {
@@ -32,7 +32,7 @@ class StepProgress extends Component {
       message: 'No message',
     };
   }
-    
+
   render() {
     const { loading, success, error, message } = this.state;
     const { classes } = this.props;
@@ -40,14 +40,14 @@ class StepProgress extends Component {
     return (
       <div className={classes.root}>
         <div className={classes.wrapper}>
-        <Button
-          variant="fab"
-          color="primary"
-          onClick={this.handleButtonClick}
-        >
-          {success ? <CheckIcon /> : <SaveIcon />}
-        </Button>
-        {loading && <CircularProgress size={68} />}
+          <Button
+            variant="fab"
+            color="primary"
+            onClick={this.handleButtonClick}
+          >
+            {success ? <CheckIcon /> : <SaveIcon />}
+          </Button>
+          {loading && <CircularProgress size={68} />}
         </div>
       </div>
     );
