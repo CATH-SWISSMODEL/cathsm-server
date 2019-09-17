@@ -57,6 +57,7 @@ coverage.xml
 *.log
 local_settings.py
 db.sqlite3
+/static
 
 # Flask stuff:
 instance/
@@ -126,4 +127,3 @@ secret_key.txt
 # Emacs backup files
 \#*#
 \.\#*
-static/
