@@ -1,5 +1,97 @@
 
+## Docker environment
+
+Remove any system docker software (if installed):
+
+```sh
+sudo yum remove docker docker-compose docker-common
 ```
+
+Install latest `docker`:
+
+```sh
+# https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-centos-7
+curl -fsSL https://get.docker.com/ | sh
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+Install latest `docker-compose`:
+
+```sh
+# https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-centos-7
+sudo curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+Get the `cathsm-server` code:
+
+```sh
+CATHSM_BRANCH=v0.0.1
+CATHSM_ENV=production
+sudo mkdir cathsm-server-${CATHSM_ENV}
+sudo chown ucbcisi:users cathsm-server-${CATHSM_ENV}
+git clone --branch=${CATHSM_BRANCH} https://github.com/CATH-SWISSMODEL/cathsm-server.git cathsm-server-${CATHSM_ENV}
+```
+
+Build `docker-compose`:
+
+```sh
+cd cathsm-server-${CATHSM_ENV}
+cp .env.example .env
+vim .env
+sudo docker-compose -f docker-compose.yml build
+```
+
+Run `docker-compose`:
+
+```sh
+cd cathsm-server-${CATHSM_ENV}
+sudo docker-compose -f docker-compose.yml run
+```
+
+## Post install
+
+* Add Django group `API User` with the following permissions:
+
+```
+admin | log entry | Can view log entry  
+auth | group | Can view group  
+auth | permission | Can view permission  
+auth | user | Can view user  
+authtoken | Token | Can add Token  
+authtoken | Token | Can change Token  
+authtoken | Token | Can delete Token  
+authtoken | Token | Can view Token  
+contenttypes | content type | Can view content type  
+select_template_api | select template alignment | Can add select template alignment  
+select_template_api | select template alignment | Can change select template alignment  
+select_template_api | select template alignment | Can delete select template alignment  
+select_template_api | select template alignment | Can view select template alignment  
+select_template_api | select template hit | Can add select template hit  
+select_template_api | select template hit | Can change select template hit  
+select_template_api | select template hit | Can delete select template hit  
+select_template_api | select template hit | Can view select template hit  
+select_template_api | select template task | Can add select template task  
+select_template_api | select template task | Can change select template task  
+select_template_api | select template task | Can delete select template task  
+select_template_api | select template task | Can view select template task  
+sessions | session | Can add session  
+sessions | session | Can change session  
+sessions | session | Can delete session  
+sessions | session | Can view session
+```
+
+* Add Django users for general functionality:
+  * `apitest` - see `cathsm-client/tests/api1_test.py`
+  * `apiuser` - see `cathsm-server/frontend/src/components/WorkFlow.js`
+
+## Manual deployment
+
+The following steps are now deprecated (since the deployment has been moved to `docker-compose`), however
+the notes are being left here for reference.
+
+```sh
 # https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-centos-7
 
 sudo yum install python36 git redis nginx postgresql  postgresql-contrib postgresql-devel
