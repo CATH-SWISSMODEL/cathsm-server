@@ -265,6 +265,8 @@ class SelectTemplateTask(models.Model):
 
     """This class represents an overall select template task."""
 
+    MAX_OVERLAPPING_RESIDUES = 10
+
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     query_id = models.CharField(max_length=50, blank=False, unique=False)
@@ -405,6 +407,7 @@ class SelectTemplateTask(models.Model):
                   " %d of those FunFams have a representative CATH domain structure."), len(
             result.hits), len(scan_hits_with_structure))
 
+        query_modelled = '-' * len(self.query_sequence)
         hits = []
         for hit_idx, scan_hit in enumerate(scan_hits_with_structure):
             LOG.info("Working on hit [%d of %d] %s: %s ... ",
@@ -415,6 +418,27 @@ class SelectTemplateTask(models.Model):
             LOG.info("Adding SelectTemplateHit for best structural match in region %s: funfam=%s",
                      query_range, scan_hit.match_name)
 
+            # count how many of the residues in this hit have already been modelled
+            overlap_residues = 0
+            hit_length = 0
+            for hsp in scan_hit.hsps:
+                query_start = int(hsp.query_start)
+                query_end = int(hsp.query_end)
+                hsp_length = query_end - query_start + 1
+                overlap_residues += query_modelled[query_start:query_end+1].count(
+                    '#')
+                hit_length += hsp_length
+
+            LOG.info("HIT_RANGE: %s", query_range)
+
+            LOG.info("PREVIOUSLY MODELLED: %s (length=%s, overlap=%s)",
+                     query_modelled, len(query_modelled), overlap_residues)
+
+            if overlap_residues > self.MAX_OVERLAPPING_RESIDUES:
+                LOG.info(
+                    "Hit overlaps with previously processed by %s residues (skipping)", overlap_residues)
+                continue
+
             hit = None
             err_msg = None
             try:
@@ -423,6 +447,20 @@ class SelectTemplateTask(models.Model):
                     cath_version=cath_version,
                     task_uuid=self.uuid,
                     is_resolved_hit=use_resolved_scan)
+
+                # if this was successful then keep track of the
+                # bits of the query sequence that have been modelled
+                for hsp in scan_hit.hsps:
+                    query_start = int(hsp.query_start)
+                    query_end = int(hsp.query_end)
+                    query_modelled = (
+                        query_modelled[:query_start] +
+                        '#' * (query_end - query_start + 1) +
+                        query_modelled[query_end + 1:])
+
+                LOG.info("NOW MODELLED: %s (length=%s)",
+                         query_modelled, len(query_modelled))
+
             except err.NoDomainsError:
                 err_msg = "no valid domains"
             except err.NoStructureDomainsError:
@@ -434,7 +472,7 @@ class SelectTemplateTask(models.Model):
                 hit.save()
                 hits.extend([hit])
             else:
-                LOG.warn("cannot create hit %s: %s", scan_hit, err_msg)
+                LOG.warning("cannot create hit %s: %s", scan_hit, err_msg)
 
         self.message = "Created {} hits".format(len(hits))
         self.save()
