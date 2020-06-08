@@ -23,10 +23,6 @@ DATABASES = {
     }
 }
 
-# allowed hosts
-
-ALLOWED_HOSTS = ['.cathdb.info', 'orengoapi01']
-
 # CACHES = {
 #     "default": {
 #         "BACKEND": "django_redis.cache.RedisCache",

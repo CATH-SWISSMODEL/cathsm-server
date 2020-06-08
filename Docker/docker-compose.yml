@@ -54,6 +54,7 @@ services:
       - DJANGO_DB_ADMIN_ML=$DJANGO_DB_ADMIN_ML
       - DJANGO_DB_USR=$DJANGO_DB_USR
       - DJANGO_DB_CLR_PW=$DJANGO_DB_CLR_PW
+      - ALLOWED_HOSTS=$ALLOWED_HOSTS
     volumes:
       - www-static:/static
     command: /cathapi/entrypoint.sh gunicorn cathapi.wsgi -b 0.0.0.0:8080

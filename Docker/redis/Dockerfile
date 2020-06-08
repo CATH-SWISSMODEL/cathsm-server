@@ -1,4 +1,4 @@
-FROM redis:5.0.5-alpine
+FROM redis:6.0.4-alpine
 
 # Find info about the base container at https://www.dockerheart.com/_/redis.
 
