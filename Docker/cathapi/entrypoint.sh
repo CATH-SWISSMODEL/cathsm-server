@@ -12,7 +12,7 @@ if 'CATHAPI_DEBUG' in os.environ:
         import cathapi.settings.dev as config
 else:
     import cathapi.settings.prod as config
-for url in [config.CACHES["default"]["LOCATION"], config.BROKER_URL,
+for url in [config.CACHES["default"]["LOCATION"], config.CELERY_BROKER_URL,
             config.CELERY_RESULT_BACKEND]:
     try:
         rds = redis.from_url(url)

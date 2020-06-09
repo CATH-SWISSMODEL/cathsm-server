@@ -102,8 +102,12 @@ services:
         - CATHSMAPI_GITTAG=$CATHSMAPI_GITTAG
     depends_on:
       - cathapi-redis
+      - postgres
     environment:
       - CATHAPI_DEBUG=CONTAINER
+      - POSTGRES_DB=$POSTGRES_DB
+      - DJANGO_DB_USR=$DJANGO_DB_USR
+      - DJANGO_DB_CLR_PW=$DJANGO_DB_CLR_PW
       - I_AM_CELERY=1
     command: celery -A cathapi worker
 
