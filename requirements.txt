@@ -6,7 +6,7 @@ Babel==2.7.0
 billiard==3.6.0.0
 biopython==1.73
 cathpy==0.2.1
-celery==4.3.0
+celery==5.2.2
 certifi==2019.6.16
 chardet==3.0.4
 Click==7.0
